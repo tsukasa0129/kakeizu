@@ -1,0 +1,44 @@
+{
+  "expo": {
+    "name": "家系図クエスト",
+    "slug": "kakeizu",
+    "scheme": "kakeizu",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.example.kakeizu",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "com.example.kakeizu",
+      "adaptiveIcon": {
+        "backgroundColor": "#58CC02",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "戸籍謄本などの書類の写真を選んで、家系図に読み込むために使用します。",
+          "cameraPermission": "戸籍謄本などの書類を撮影して、家系図に読み込むために使用します。"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
