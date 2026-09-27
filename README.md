@@ -84,6 +84,27 @@ supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
 `EXPO_PUBLIC_SUPABASE_ANON_KEY` を設定します。API キーはサーバー側だけに置き、アプリには入れません。
 画像はメモリ上で処理するだけで保存しません。
 
+## EAS Build
+
+`eas.json` のプロファイル:
+
+| プロファイル | 用途 | 課金 |
+| --- | --- | --- |
+| `development` | 開発ビルド（expo-dev-client、実機に直接インストール） | Test Store |
+| `development-simulator` | iOS シミュレーター用の開発ビルド | Test Store |
+| `preview` | 動作確認用（Android は .apk、iOS はアドホック配布） | Test Store |
+| `production` | ストア提出用（ビルド番号は自動採番） | App Store / Google Play |
+
+初回だけ EAS プロジェクトを作ります（`app.json` に `extra.eas.projectId` が入ります）:
+
+```bash
+npx eas-cli@latest login
+npx eas-cli@latest init
+npx eas-cli@latest build --profile preview --platform android
+```
+
+iOS の実機向けビルドには Apple Developer Program のアカウントが必要です（証明書は EAS が作成・管理します）。
+
 ## 開発コマンド
 
 ```bash

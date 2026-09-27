@@ -35,7 +35,8 @@
           "photosPermission": "戸籍謄本などの書類の写真を選んで、家系図に読み込むために使用します。",
           "cameraPermission": "戸籍謄本などの書類を撮影して、家系図に読み込むために使用します。"
         }
-      ]
+      ],
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true

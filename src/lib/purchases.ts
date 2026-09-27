@@ -17,9 +17,9 @@ const storeKey = Platform.select({
   ios: process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY,
   android: process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_KEY,
 });
-// RevenueCat Test Store: simulated purchases without store accounts. Development builds only.
-const testKey = __DEV__ ? process.env.EXPO_PUBLIC_REVENUECAT_TEST_KEY : undefined;
-const apiKey = testKey || storeKey;
+// RevenueCat Test Store: simulated purchases without store accounts.
+// Set only for the development/preview EAS profiles (and local .env), never for production.
+const apiKey = process.env.EXPO_PUBLIC_REVENUECAT_TEST_KEY || storeKey;
 
 let configured = false;
 
