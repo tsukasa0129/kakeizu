@@ -50,11 +50,26 @@ npx expo run:ios      # または eas build --profile development
 
 ### RevenueCat
 
-1. RevenueCat でプロジェクトと iOS / Android アプリを作成し、公開 SDK キーを `.env` に設定
-   - `EXPO_PUBLIC_REVENUECAT_IOS_KEY` / `EXPO_PUBLIC_REVENUECAT_ANDROID_KEY`
-2. Entitlement **`premium`** を作成（`src/lib/purchases.ts` の `ENTITLEMENT_ID`）
-3. App Store Connect / Google Play で月額・年額のサブスクを作り、`premium` に紐付け
-4. **current offering** に `$rc_monthly` / `$rc_annual` パッケージを追加（ペイウォールは current offering を表示し、年額を「おすすめ」表示）
+RevenueCat プロジェクト「家系図クエスト」は設定済みです（[ダッシュボード](https://app.revenuecat.com/projects/78986d5d)）。
+
+| 項目 | 設定 |
+| --- | --- |
+| Entitlement | `premium`（`src/lib/purchases.ts` の `ENTITLEMENT_ID`） |
+| Offering | `default`（current）: `$rc_annual`（年額）/ `$rc_monthly`（月額） |
+| iOS アプリ | `com.tsukasa0129.kakeizu` — 商品 `com.tsukasa0129.kakeizu.premium_annual` / `...premium_monthly` |
+| Android アプリ | `com.tsukasa0129.kakeizu` — 商品 `premium:annual` / `premium:monthly`（サブスクID:基本プランID） |
+| Test Store | `premium_annual`（¥4,800 / $29.99）/ `premium_monthly`（¥800 / $4.99） |
+
+`.env.example` に公開 SDK キーが入っているので `cp .env.example .env` だけで動きます。
+開発ビルド（`__DEV__`）では `EXPO_PUBLIC_REVENUECAT_TEST_KEY` の **Test Store** が使われ、ストアのアカウントなしで購入フローを試せます。
+リリースビルドでは iOS / Android のキーが使われます。
+
+リリース前に残っている作業（ストア側）:
+
+1. App Store Connect で上記の商品ID（自動更新サブスク、同じサブスクリプショングループ）を作成し、価格（月額¥800・年額¥4,800）を設定
+2. Google Play Console でサブスク `premium` に基本プラン `monthly` / `annual` を作成
+3. RevenueCat の各アプリ設定で、App Store Connect API キー / In-App Purchase キーと Google Play のサービスアカウント認証情報を登録
+   （登録すると RevenueCat 側から価格や商品の作成もできるようになります）
 
 無料プラン: AI 読み取り3回・曾祖父母（3代前）まで。プレミアム: 読み取り無制限・5代前まで・ユニット5。
 
@@ -92,6 +107,5 @@ Photomyne のスキャン画面などを調査し、次のパターンを取り�
 - **無料回数の制限はアプリ側のみ**です。本番では Edge Function 側でも、RevenueCat の REST API / Webhook で
   ユーザーの entitlement を確認するか、Supabase Auth と利用回数テーブルで制限してください。
 - ペイウォールの利用規約・プライバシーポリシーの URL（`src/app/paywall.tsx`）を差し替えてください。
-- `app.json` の `bundleIdentifier` / `package`（`com.example.kakeizu`）を差し替えてください。
 - 戸籍制度の説明（手数料・広域交付の範囲など）は一般的な内容です。自治体により異なる場合があるため、アプリ内でも確認を促しています。
 - 戸籍は機微な個人情報です。ストア審査用のプライバシー表記（データの送信先・非保存）を用意してください。
