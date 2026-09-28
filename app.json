@@ -34,13 +34,19 @@
         "expo-image-picker",
         {
           "photosPermission": "戸籍謄本などの書類の写真を選んで、家系図に読み込むために使用します。",
-          "cameraPermission": "戸籍謄本などの書類を撮影して、家系図に読み込むために使用します。"
+          "cameraPermission": "戸籍謄本などの書類を撮影して、家系図に読み込むために使用します。",
+          "microphonePermission": false
         }
       ],
       "expo-font"
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "c587b4a8-1c27-4b07-b34b-ec4eadd17d81"
+      }
     }
   }
 }
