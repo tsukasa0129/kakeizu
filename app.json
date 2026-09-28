@@ -2,6 +2,7 @@
   "expo": {
     "name": "家系図クエスト",
     "slug": "kakeizu",
+    "owner": "tsk-tsk",
     "scheme": "kakeizu",
     "version": "1.0.0",
     "orientation": "portrait",
