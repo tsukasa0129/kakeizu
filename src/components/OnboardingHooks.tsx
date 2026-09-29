@@ -5,7 +5,13 @@ import { Animated, Easing, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { BookMockup } from '@/components/BookMockup';
 import { Mascot } from '@/components/Mascot';
 import { FadeSlideIn, nativeDriver, PopIn, useCountUp, useLoop, useReducedMotion } from '@/components/Motion';
-import { BOOK_PLANS } from '@/data/book';
+import {
+  BOOK_COMPLETE_DISCOUNT_PERCENT,
+  BOOK_COMPLETE_GENERATION,
+  BOOK_PLANS,
+  bookDiscountActive,
+} from '@/data/book';
+import { generationName } from '@/lib/slots';
 import { colors, font, radius } from '@/theme';
 
 // Intro pages shown right after the welcome screen, before the questions (like the welcome
@@ -307,6 +313,15 @@ function PrintedBook() {
           </FadeSlideIn>
         ))}
       </View>
+      {bookDiscountActive() && (
+        <PopIn delay={1000} style={styles.reward}>
+          <Ionicons name="gift" size={22} color={colors.orangeDark} />
+          <Text style={styles.rewardText}>
+            {generationName(BOOK_COMPLETE_GENERATION)}まで完成させた人は、{'\n'}製本が
+            <Text style={{ color: colors.red }}>{BOOK_COMPLETE_DISCOUNT_PERCENT}%オフ</Text>に！
+          </Text>
+        </PopIn>
+      )}
       <Text style={font.small}>製本は別途ご注文いただけます（{BOOK_PLANS[0].price}）</Text>
     </View>
   );
@@ -388,6 +403,19 @@ const styles = StyleSheet.create({
   node: { width: 16, height: 16, borderRadius: 4 },
   nodeWide: { width: 30 },
   point: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  reward: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    alignSelf: 'stretch',
+    padding: 12,
+    borderRadius: radius.md,
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    borderColor: colors.orange,
+    backgroundColor: '#FFF8EC',
+  },
+  rewardText: { flex: 1, fontSize: 14, fontWeight: '800', color: colors.text, lineHeight: 20 },
   dots: { flexDirection: 'row', justifyContent: 'center', gap: 8 },
   dotIndicator: { height: 8, borderRadius: 4 },
 });

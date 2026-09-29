@@ -4,6 +4,17 @@
 /** 注文ページ（製本サービス）。未設定のあいだは LP の注文ボタンが「準備中」の案内になります。 */
 export const BOOK_ORDER_URL = process.env.EXPO_PUBLIC_BOOK_ORDER_URL ?? '';
 
+/**
+ * 完成特典: 曾祖父母（3代前）までの15人をすべて埋めた人は、製本が割引になる。
+ * 割引は製本サービス側のクーポンコードで適用する。コード（EXPO_PUBLIC_BOOK_COMPLETE_COUPON）が
+ * 未設定のあいだは、オンボーディングにも LP にも割引の案内を出さない（実際に適用できない特典は表示しない）。
+ * 割引率は製本サービスで作ったクーポンの値に合わせてください。
+ */
+export const BOOK_COMPLETE_COUPON = process.env.EXPO_PUBLIC_BOOK_COMPLETE_COUPON ?? '';
+export const BOOK_COMPLETE_DISCOUNT_PERCENT = 20;
+export const BOOK_COMPLETE_GENERATION = 3;
+export const bookDiscountActive = () => BOOK_COMPLETE_COUPON !== '';
+
 /** 本にするのにおすすめの最低人数（あなた〜祖父母の7人）。 */
 export const BOOK_RECOMMENDED_PERSONS = 7;
 

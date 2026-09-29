@@ -20,6 +20,7 @@ import { Mascot, MascotSays } from '@/components/Mascot';
 import { Confetti, FadeSlideIn, GrowBar, nativeDriver, PopIn, useCountUp } from '@/components/Motion';
 import { HOOK_COUNT, HookDots, OnboardingHook } from '@/components/OnboardingHooks';
 import { ProgressBar } from '@/components/ProgressBar';
+import { BOOK_COMPLETE_DISCOUNT_PERCENT, BOOK_COMPLETE_GENERATION, bookDiscountActive } from '@/data/book';
 import { notify } from '@/lib/notify';
 import { awardProgress } from '@/lib/progress';
 import { purchasesAvailable, restore } from '@/lib/purchases';
@@ -324,6 +325,8 @@ export default function Onboarding() {
                 <Icon name="books" size={28} />
                 <Text style={[font.small, { flex: 1, color: colors.text, fontWeight: '700' }]}>
                   埋まった家系図は、ハードカバーの本にして{motive === '子どもに残したい' ? 'お子さんに' : '家族に'}残せます。
+                  {bookDiscountActive() &&
+                    `${generationName(BOOK_COMPLETE_GENERATION)}まで完成させると製本が${BOOK_COMPLETE_DISCOUNT_PERCENT}%オフに！`}
                 </Text>
               </FadeSlideIn>
               <Text style={[font.small, styles.centerText]}>目標はあとからいつでも変えられます。</Text>
