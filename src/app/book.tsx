@@ -11,6 +11,9 @@ import { Button3D } from '@/components/Button3D';
 import { Icon } from '@/components/Icon';
 import { ProgressBar } from '@/components/ProgressBar';
 import {
+  BOOK_COMPLETE_COUPON,
+  BOOK_COMPLETE_DISCOUNT_PERCENT,
+  BOOK_COMPLETE_GENERATION,
   BOOK_FAQ,
   BOOK_ORDER_URL,
   BOOK_PLANS,
@@ -19,7 +22,7 @@ import {
   BOOK_STEPS,
 } from '@/data/book';
 import { notify } from '@/lib/notify';
-import { generationName, generationOf } from '@/lib/slots';
+import { generationName, generationOf, slotsUpTo } from '@/lib/slots';
 import { useFamily } from '@/store/family';
 import { colors, font, radius } from '@/theme';
 
@@ -34,13 +37,20 @@ export default function BookScreen() {
   const deepest = Math.max(0, ...[...slots].map(generationOf));
   const familyName = Object.values(persons).find((p) => p.slot === 1)?.familyName;
   const ready = count >= BOOK_RECOMMENDED_PERSONS;
+  // Completion reward: every slot up to 曾祖父母 filled unlocks the discount coupon.
+  const discountSlots = slotsUpTo(BOOK_COMPLETE_GENERATION);
+  const discountFilled = discountSlots.filter((x) => slots.has(x)).length;
+  const discountUnlocked = !!BOOK_COMPLETE_COUPON && discountFilled === discountSlots.length;
 
   const order = () => {
     if (!BOOK_ORDER_URL) {
       notify('まもなく受付開始', '家系図の本の注文受付は準備中です。もうしばらくお待ちください。');
       return;
     }
-    WebBrowser.openBrowserAsync(BOOK_ORDER_URL);
+    const url = discountUnlocked
+      ? `${BOOK_ORDER_URL}${BOOK_ORDER_URL.includes('?') ? '&' : '?'}coupon=${encodeURIComponent(BOOK_COMPLETE_COUPON)}`
+      : BOOK_ORDER_URL;
+    WebBrowser.openBrowserAsync(url);
   };
 
   return (
@@ -80,6 +90,38 @@ export default function BookScreen() {
               <Button3D title="家系図を埋める" variant="secondary" onPress={() => router.navigate('/(tabs)/tree')} />
             )}
           </View>
+
+          {!!BOOK_COMPLETE_COUPON && (
+            <View style={[styles.card, styles.rewardCard]}>
+              <View style={styles.row}>
+                <Icon name="gift" size={24} />
+                <Text style={[font.h3, { flex: 1 }]}>
+                  完成特典：製本が{BOOK_COMPLETE_DISCOUNT_PERCENT}%オフ
+                </Text>
+              </View>
+              {discountUnlocked ? (
+                <>
+                  <Text style={font.body}>
+                    {generationName(BOOK_COMPLETE_GENERATION)}まで完成しました！注文ページに割引が自動で適用されます。
+                  </Text>
+                  <View style={styles.coupon}>
+                    <Text style={font.small}>クーポンコード</Text>
+                    <Text selectable style={styles.couponCode}>
+                      {BOOK_COMPLETE_COUPON}
+                    </Text>
+                  </View>
+                </>
+              ) : (
+                <>
+                  <Text style={font.small}>
+                    {generationName(BOOK_COMPLETE_GENERATION)}まで（{discountSlots.length}人）すべて埋めると、クーポンがもらえます。あと{' '}
+                    {discountSlots.length - discountFilled} 人！
+                  </Text>
+                  <ProgressBar value={discountFilled / discountSlots.length} color={colors.orange} />
+                </>
+              )}
+            </View>
+          )}
 
           <Text style={styles.section}>こんな本ができます</Text>
           {BOOK_POINTS.map((p) => (
@@ -189,6 +231,9 @@ const styles = StyleSheet.create({
   section: { ...font.h2, marginTop: 14 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   card: { borderWidth: 2, borderColor: colors.border, borderRadius: radius.md, padding: 16, gap: 10 },
+  rewardCard: { borderColor: colors.orange, backgroundColor: '#FFF8EC' },
+  coupon: { alignItems: 'center', gap: 2, padding: 10, borderRadius: radius.sm, backgroundColor: '#fff', borderWidth: 2, borderStyle: 'dashed', borderColor: colors.orange },
+  couponCode: { fontSize: 22, fontWeight: '900', letterSpacing: 3, color: colors.orangeDark },
   statsRow: { flexDirection: 'row', gap: 10 },
   stat: { flex: 1, backgroundColor: colors.surface, borderRadius: radius.sm, padding: 12, gap: 2 },
   statValue: { fontSize: 20, fontWeight: '800', color: colors.text },

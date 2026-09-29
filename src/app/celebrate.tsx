@@ -31,7 +31,7 @@ export default function Celebrate() {
   return (
     <View style={styles.backdrop}>
       <Animated.View style={[styles.sheet, { transform: [{ scale }] }]}>
-        <Mascot size={130} mood="wow" />
+        <Mascot size={130} mood="wow" animate />
         <Text style={[font.h2, { textAlign: 'center' }]}>{reward.title}</Text>
 
         <View style={styles.statsRow}>

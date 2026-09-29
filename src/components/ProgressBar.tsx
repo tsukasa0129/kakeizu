@@ -1,5 +1,7 @@
-import { StyleSheet, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Animated, Easing, StyleSheet, View } from 'react-native';
 
+import { useReducedMotion } from '@/components/Motion';
 import { colors } from '@/theme';
 
 export function ProgressBar({
@@ -12,12 +14,22 @@ export function ProgressBar({
   height?: number;
 }) {
   const pct = Math.max(0, Math.min(1, value));
+  const reduced = useReducedMotion();
+  const anim = useState(() => new Animated.Value(pct))[0];
+  // Glide to the new value instead of jumping (width can't use the native driver).
+  useEffect(() => {
+    if (reduced) return anim.setValue(pct);
+    const a = Animated.timing(anim, { toValue: pct, duration: 450, easing: Easing.out(Easing.cubic), useNativeDriver: false });
+    a.start();
+    return () => a.stop();
+  }, [anim, pct, reduced]);
+  const width = anim.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] });
   return (
     <View style={[styles.track, { height, borderRadius: height / 2 }]}>
       {pct > 0 && (
-        <View style={[styles.fill, { width: `${pct * 100}%`, backgroundColor: color, borderRadius: height / 2 }]}>
+        <Animated.View style={[styles.fill, { width, backgroundColor: color, borderRadius: height / 2 }]}>
           <View style={[styles.shine, { borderRadius: height / 2 }]} />
-        </View>
+        </Animated.View>
       )}
     </View>
   );

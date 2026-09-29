@@ -1,6 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { useEffect, useState } from 'react';
 import {
+  Animated,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -15,8 +17,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button3D } from '@/components/Button3D';
 import { Icon, type IconName } from '@/components/Icon';
 import { Mascot, MascotSays } from '@/components/Mascot';
+import { Confetti, FadeSlideIn, GrowBar, nativeDriver, PopIn, useCountUp } from '@/components/Motion';
 import { HOOK_COUNT, HookDots, OnboardingHook } from '@/components/OnboardingHooks';
 import { ProgressBar } from '@/components/ProgressBar';
+import { BOOK_COMPLETE_DISCOUNT_PERCENT, BOOK_COMPLETE_GENERATION, bookDiscountActive } from '@/data/book';
 import { notify } from '@/lib/notify';
 import { awardProgress } from '@/lib/progress';
 import { purchasesAvailable, restore } from '@/lib/purchases';
@@ -26,8 +30,9 @@ import { useGame } from '@/store/game';
 import { colors, font, radius } from '@/theme';
 
 // Flow modelled on the top-grossing hard-paywall apps studied in Appllama (Cal AI et al.):
-// welcome → intro pages that make you want to start → short personal questions → insight → "with us vs. on your own" → plan calculation →
-// "your plan is ready" → paywall. Each answer is reused on the plan and paywall screens.
+// welcome → intro pages that make you want to start → short personal questions → insight →
+// "with us vs. on your own" → plan calculation → "your plan is ready" → paywall.
+// Every step animates in, and the samurai mascot bobs along, to keep the long flow playful. Each answer is reused on the plan and paywall screens.
 
 const MOTIVES = ['ルーツを知りたい', '子どもに残したい', '相続の準備', 'お墓・法事のため', 'なんとなく興味'];
 
@@ -118,7 +123,9 @@ export default function Onboarding() {
             <Text style={styles.back}>‹</Text>
           </Pressable>
         </View>
-        <OnboardingHook index={hook} />
+        <FadeSlideIn key={hook} from="right" distance={48} style={{ flex: 1 }}>
+          <OnboardingHook index={hook} />
+        </FadeSlideIn>
         <View style={styles.bottom}>
           <HookDots index={hook} />
           <Button3D
@@ -133,17 +140,28 @@ export default function Onboarding() {
   if (step === 0) {
     return (
       <SafeAreaView style={styles.center}>
-        <Mascot size={180} />
-        <Text style={[font.h1, styles.centerText]}>家系図クエスト</Text>
-        <Text style={[font.body, styles.centerText, { color: colors.textMuted }]}>
-          役所の戸籍をAIで読み取って、{'\n'}ゲーム感覚で家系図を完成させよう。
-        </Text>
-        <View style={styles.bottom}>
+        <PopIn delay={500}>
+          <View style={styles.greeting}>
+            <Text style={styles.greetingText}>ご先祖さま探し、お供いたす！</Text>
+          </View>
+        </PopIn>
+        <PopIn>
+          <Mascot size={190} animate />
+        </PopIn>
+        <FadeSlideIn delay={250}>
+          <Text style={[font.h1, styles.centerText]}>家系図クエスト</Text>
+        </FadeSlideIn>
+        <FadeSlideIn delay={400}>
+          <Text style={[font.body, styles.centerText, { color: colors.textMuted }]}>
+            役所の戸籍をAIで読み取って、{'\n'}ゲーム感覚で家系図を完成させよう。
+          </Text>
+        </FadeSlideIn>
+        <FadeSlideIn delay={650} style={styles.bottom}>
           <Button3D title="はじめる" onPress={() => setHook(0)} />
           <Text style={styles.restore} onPress={restoring ? undefined : onRestore}>
             {restoring ? '確認中…' : 'すでに購入済みの方はこちら'}
           </Text>
-        </View>
+        </FadeSlideIn>
       </SafeAreaView>
     );
   }
@@ -176,12 +194,13 @@ export default function Onboarding() {
         )}
 
         <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
+          <FadeSlideIn key={step} from="right" distance={48} style={{ gap: 20 }}>
           {step === 1 && (
             <>
-              <MascotSays text="家系図をつくろうと思ったきっかけは？" />
+              <MascotSays animate text="家系図をつくろうと思ったきっかけは？" />
               <View style={styles.options}>
-                {MOTIVES.map((m) => (
-                  <Option key={m} label={m} selected={motive === m} onPress={() => setMotive(m)} />
+                {MOTIVES.map((m, i) => (
+                  <Option index={i} key={m} label={m} selected={motive === m} onPress={() => setMotive(m)} />
                 ))}
               </View>
             </>
@@ -189,10 +208,11 @@ export default function Onboarding() {
 
           {step === 2 && (
             <>
-              <MascotSays text="何代前のご先祖さままで知りたい？" />
+              <MascotSays animate text="何代前のご先祖さままで知りたい？" />
               <View style={styles.options}>
-                {TARGETS.map((t) => (
+                {TARGETS.map((t, i) => (
                   <Option
+                    index={i}
                     key={t.gen}
                     label={t.label}
                     sub={t.sub}
@@ -207,10 +227,10 @@ export default function Onboarding() {
 
           {step === 3 && (
             <>
-              <MascotSays text="祖父母4人のフルネーム、いくつ言えるかな？" mood="think" />
+              <MascotSays animate text="祖父母4人のフルネーム、いくつ言えるかな？" mood="think" />
               <View style={styles.options}>
-                {KNOWLEDGE.map((k) => (
-                  <Option key={k.id} label={k.label} selected={knowledge === k.id} onPress={() => setKnowledge(k.id)} />
+                {KNOWLEDGE.map((k, i) => (
+                  <Option index={i} key={k.id} label={k.label} selected={knowledge === k.id} onPress={() => setKnowledge(k.id)} />
                 ))}
               </View>
             </>
@@ -218,10 +238,11 @@ export default function Onboarding() {
 
           {step === 4 && (
             <>
-              <MascotSays text="戸籍謄本を取ったことはある？" />
+              <MascotSays animate text="戸籍謄本を取ったことはある？" />
               <View style={styles.options}>
-                {EXPERIENCE.map((e) => (
+                {EXPERIENCE.map((e, i) => (
                   <Option
+                    index={i}
                     key={e.id}
                     icon={e.icon}
                     label={e.label}
@@ -239,10 +260,11 @@ export default function Onboarding() {
 
           {step === 7 && (
             <>
-              <MascotSays text="1日の目標を決めよう！毎日つづけると連続記録がのびるよ。" />
+              <MascotSays animate text="1日の目標を決めよう！毎日つづけると連続記録がのびるよ。" />
               <View style={styles.options}>
-                {GOALS.map((g) => (
+                {GOALS.map((g, i) => (
                   <Option
+                    index={i}
                     key={g.xp}
                     label={`${g.label}  ${g.sub}`}
                     trailing={`${g.xp} XP`}
@@ -256,7 +278,7 @@ export default function Onboarding() {
 
           {step === 8 && (
             <>
-              <MascotSays text="最後に、家系図の真ん中になるあなたのお名前を教えてね。" />
+              <MascotSays animate text="最後に、家系図の真ん中になるあなたのお名前を教えてね。" />
               <View style={styles.nameRow}>
                 <TextInput
                   style={styles.input}
@@ -280,34 +302,37 @@ export default function Onboarding() {
           {step === PLAN && (
             <View style={{ gap: 16 }}>
               <View style={{ alignItems: 'center', gap: 8 }}>
-                <View style={styles.doneMark}>
-                  <Ionicons name="checkmark" size={26} color="#fff" />
-                </View>
+                <PopIn>
+                  <Mascot size={96} mood="wow" animate />
+                </PopIn>
                 <Text style={[font.h2, styles.centerText]}>
                   {name ? `${name}さん専用の` : 'あなた専用の'}
                   {'\n'}ルーツ探しプランができました！
                 </Text>
               </View>
-              <View style={styles.goalPill}>
+              <PopIn delay={250} style={styles.goalPill}>
                 <Text style={styles.goalPillText}>
                   {generationName(targetGen)}まで ・ ご先祖さま最大{ancestorsUpTo(targetGen)}人
                 </Text>
-              </View>
+              </PopIn>
               <View style={styles.planGrid}>
-                <PlanCard icon="flag" title="ゴール" value={`${generationName(targetGen)}（${targetGen}代前）`} />
-                <PlanCard icon="tree" title="見つけるご先祖さま" value={`最大 ${ancestorsUpTo(targetGen)}人`} />
-                <PlanCard icon="rocket" title="最初の一歩" value={FIRST_STEP[experience ?? 'unknown']} />
-                <PlanCard icon="flame" title="1日の目標" value={goalLabel} />
+                <PlanCard delay={400} icon="flag" title="ゴール" value={`${generationName(targetGen)}（${targetGen}代前）`} />
+                <PlanCard delay={500} icon="tree" title="見つけるご先祖さま" value={`最大 ${ancestorsUpTo(targetGen)}人`} />
+                <PlanCard delay={600} icon="rocket" title="最初の一歩" value={FIRST_STEP[experience ?? 'unknown']} />
+                <PlanCard delay={700} icon="flame" title="1日の目標" value={goalLabel} />
               </View>
-              <View style={styles.bookBanner}>
+              <FadeSlideIn delay={850} style={styles.bookBanner}>
                 <Icon name="books" size={28} />
                 <Text style={[font.small, { flex: 1, color: colors.text, fontWeight: '700' }]}>
                   埋まった家系図は、ハードカバーの本にして{motive === '子どもに残したい' ? 'お子さんに' : '家族に'}残せます。
+                  {bookDiscountActive() &&
+                    `${generationName(BOOK_COMPLETE_GENERATION)}まで完成させると製本が${BOOK_COMPLETE_DISCOUNT_PERCENT}%オフに！`}
                 </Text>
-              </View>
+              </FadeSlideIn>
               <Text style={[font.small, styles.centerText]}>目標はあとからいつでも変えられます。</Text>
             </View>
           )}
+          </FadeSlideIn>
         </ScrollView>
 
         <View style={styles.bottom}>
@@ -322,6 +347,7 @@ export default function Onboarding() {
           )}
         </View>
       </KeyboardAvoidingView>
+      {step === PLAN && <Confetti />}
     </SafeAreaView>
   );
 }
@@ -330,18 +356,19 @@ export default function Onboarding() {
 function AncestorInsight({ gen, knowledge }: { gen: number; knowledge: string | null }) {
   const gens = Array.from({ length: gen }, (_, i) => i + 1);
   const max = 2 ** gen;
+  const count = useCountUp(ancestorsUpTo(gen), 1000, 300);
   return (
     <View style={{ gap: 16 }}>
       <Text style={font.h2}>
         {generationName(gen)}までには、{'\n'}
-        <Text style={{ color: colors.greenDark }}>{ancestorsUpTo(gen)}人</Text>のご先祖さまがいます
+        <Text style={{ color: colors.greenDark }}>{count}人</Text>のご先祖さまがいます
       </Text>
       <View style={styles.card}>
-        {gens.map((g) => (
+        {gens.map((g, i) => (
           <View key={g} style={styles.barRow}>
             <Text style={styles.barLabel}>{generationName(g)}</Text>
             <View style={styles.barTrack}>
-              <View style={[styles.barFill, { width: `${(2 ** g / max) * 100}%` }]} />
+              <GrowBar pct={2 ** g / max} delay={300 + i * 180} color={colors.green} style={styles.barFill} />
             </View>
             <Text style={styles.barValue}>{2 ** g}人</Text>
           </View>
@@ -353,12 +380,12 @@ function AncestorInsight({ gen, knowledge }: { gen: number; knowledge: string | 
           : '名前を知らなくても大丈夫。'}
         戸籍をさかのぼれば、名前・生まれた年・出身地まで書いてあります。
       </Text>
-      <View style={styles.note}>
+      <FadeSlideIn delay={1200} style={styles.note}>
         <Icon name="hourglass" size={22} />
         <Text style={[font.small, { flex: 1 }]}>
           古い戸籍の中には、保存期間を過ぎて廃棄されたものもあります。調べるなら早いほど安心です。
         </Text>
-      </View>
+      </FadeSlideIn>
     </View>
   );
 }
@@ -382,8 +409,8 @@ function Comparison({ experience }: { experience: string | null }) {
         <Text style={[styles.compareHeadText, { flex: 1 }]}>ひとりで</Text>
         <Text style={[styles.compareHeadText, { flex: 1.2, color: colors.greenDark }]}>家系図クエスト</Text>
       </View>
-      {COMPARE_ROWS.map((r) => (
-        <View key={r.label} style={{ gap: 6 }}>
+      {COMPARE_ROWS.map((r, i) => (
+        <FadeSlideIn key={r.label} delay={200 + i * 160} style={{ gap: 6 }}>
           <Text style={styles.compareLabel}>{r.label}</Text>
           <View style={{ flexDirection: 'row', gap: 8 }}>
             <View style={[styles.compareCell, { flex: 1 }]}>
@@ -395,7 +422,7 @@ function Comparison({ experience }: { experience: string | null }) {
               <Text style={[font.small, { flex: 1, color: colors.text, fontWeight: '700' }]}>{r.app}</Text>
             </View>
           </View>
-        </View>
+        </FadeSlideIn>
       ))}
     </View>
   );
@@ -417,6 +444,7 @@ function PlanCalculation({ onDone }: { onDone: () => void }) {
   const doneCount = Math.floor((pct / 100) * CALC_ITEMS.length);
   return (
     <SafeAreaView style={[styles.center, { justifyContent: 'center' }]}>
+      <Mascot size={110} mood="think" animate />
       <Text style={styles.pct}>{pct}%</Text>
       <Text style={[font.h2, styles.centerText]}>あなた専用のプランを{'\n'}作成しています</Text>
       <View style={{ width: '100%', paddingHorizontal: 12 }}>
@@ -426,7 +454,11 @@ function PlanCalculation({ onDone }: { onDone: () => void }) {
         {CALC_ITEMS.map((item, i) => (
           <View key={item} style={styles.calcRow}>
             <Text style={[font.body, { flex: 1, color: i < doneCount ? colors.text : colors.locked }]}>・{item}</Text>
-            {i < doneCount && <Ionicons name="checkmark-circle" size={22} color={colors.green} />}
+            {i < doneCount && (
+              <PopIn>
+                <Ionicons name="checkmark-circle" size={22} color={colors.green} />
+              </PopIn>
+            )}
           </View>
         ))}
       </View>
@@ -434,17 +466,51 @@ function PlanCalculation({ onDone }: { onDone: () => void }) {
   );
 }
 
-function PlanCard({ icon, title, value }: { icon: IconName; title: string; value: string }) {
+function PlanCard({ icon, title, value, delay }: { icon: IconName; title: string; value: string; delay: number }) {
   return (
-    <View style={styles.planCard}>
+    <PopIn delay={delay} style={styles.planCard}>
       <Icon name={icon} size={26} />
       <Text style={font.small}>{title}</Text>
       <Text style={styles.planValue}>{value}</Text>
-    </View>
+    </PopIn>
   );
 }
 
 function Option({
+  index,
+  label,
+  sub,
+  trailing,
+  icon,
+  selected,
+  onPress,
+}: {
+  index: number;
+  label: string;
+  sub?: string;
+  trailing?: string;
+  icon?: IconName;
+  selected: boolean;
+  onPress: () => void;
+}) {
+  // A little bounce (and a haptic tick) when the choice gets picked.
+  const bounce = useState(() => new Animated.Value(1))[0];
+  const pick = () => {
+    Haptics.selectionAsync().catch(() => {});
+    bounce.setValue(0.94);
+    Animated.spring(bounce, { toValue: 1, friction: 3, tension: 200, useNativeDriver: nativeDriver }).start();
+    onPress();
+  };
+  return (
+    <FadeSlideIn delay={150 + index * 70}>
+      <Animated.View style={{ transform: [{ scale: bounce }] }}>
+        <OptionBody label={label} sub={sub} trailing={trailing} icon={icon} selected={selected} onPress={pick} />
+      </Animated.View>
+    </FadeSlideIn>
+  );
+}
+
+function OptionBody({
   label,
   sub,
   trailing,
@@ -509,6 +575,15 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   bottom: { padding: 20, width: '100%', gap: 14 },
+  greeting: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.pill,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderWidth: 2,
+    borderColor: colors.border,
+  },
+  greetingText: { fontWeight: '800', color: colors.text },
   restore: { textAlign: 'center', color: colors.blue, fontWeight: '700', fontSize: 14 },
   card: { backgroundColor: colors.surface, borderRadius: radius.lg, padding: 16, gap: 12 },
   barRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
@@ -540,14 +615,6 @@ const styles = StyleSheet.create({
   pct: { fontSize: 64, fontWeight: '900', color: colors.text },
   calcList: { width: '100%', paddingHorizontal: 12, gap: 6, marginTop: 12 },
   calcRow: { flexDirection: 'row', alignItems: 'center' },
-  doneMark: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.green,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   goalPill: {
     alignSelf: 'center',
     backgroundColor: colors.surface,
