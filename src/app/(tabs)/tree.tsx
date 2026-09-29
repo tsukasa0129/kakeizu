@@ -74,7 +74,13 @@ export default function TreeScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <Text style={font.h2}>家系図</Text>
+        <View style={styles.titleRow}>
+          <Text style={font.h2}>家系図</Text>
+          <Pressable style={styles.bookButton} onPress={() => router.push('/book')} accessibilityRole="button">
+            <Icon name="books" size={18} />
+            <Text style={styles.bookButtonText}>本にする</Text>
+          </Pressable>
+        </View>
         <Text style={font.small}>
           完成度 {filled} / {totalSlots} 人（{generationName(maxGen)}まで）
         </Text>
@@ -205,6 +211,20 @@ const styles = StyleSheet.create({
   years: { fontSize: 11, color: colors.textMuted },
   emptyLabel: { fontSize: 13, fontWeight: '800', color: colors.textMuted },
   emptyHint: { fontSize: 11, color: colors.locked },
+  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  bookButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: radius.pill,
+    borderWidth: 2,
+    borderBottomWidth: 3,
+    borderColor: colors.orange,
+    backgroundColor: '#FFF6E5',
+  },
+  bookButtonText: { fontSize: 13, fontWeight: '800', color: colors.orangeDark },
   upsell: { margin: 16, padding: 16, gap: 10, borderRadius: radius.md, borderWidth: 2, borderColor: colors.purple },
   fab: {
     position: 'absolute',
