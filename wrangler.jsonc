@@ -1,0 +1,10 @@
+{
+  // Static Expo web export (web2app funnel at /start) served by Cloudflare Workers Static Assets.
+  "name": "kakeizu-web",
+  "compatibility_date": "2026-09-29",
+  "assets": {
+    "directory": "./dist",
+    // Expo Router's web output is a single-page app: unknown paths like /start/success fall back to index.html.
+    "not_found_handling": "single-page-application"
+  }
+}

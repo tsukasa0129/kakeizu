@@ -88,7 +88,22 @@ RevenueCat プロジェクト「家系図クエスト」は設定済みです（
    `Purchases.redeemWebPurchase` を実行 → entitlement `premium` がアプリのユーザーに付与されます（オンボーディング前でも可）
 
 広告のリンク先は `https://<Web のホスト>/start?utm_source=instagram&utm_campaign=...` のようにします。
-Web 版は `npx expo export --platform web` で `dist/` に書き出し、Vercel などの静的ホスティングに置けます。
+##### Cloudflare へのデプロイ
+
+Web 版は Cloudflare Workers（Static Assets）で配信します（`wrangler.jsonc`、Worker 名 `kakeizu-web`）。
+`main` に push すると GitHub Actions（`.github/workflows/deploy-web.yml`）が `npm run build:web` → `wrangler deploy` を実行します。
+Actions タブから手動実行（workflow_dispatch）もできます。
+
+初回だけ、GitHub リポジトリの Settings → Secrets and variables → Actions に次を登録してください:
+
+| Secret | 内容 |
+| --- | --- |
+| `CLOUDFLARE_API_TOKEN` | Cloudflare ダッシュボード → My Profile → API Tokens で「Edit Cloudflare Workers」テンプレートから作成 |
+| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare ダッシュボードの Workers & Pages 画面右側に表示されるアカウント ID |
+
+デプロイ後のファネルの URL は `https://kakeizu-web.<サブドメイン>.workers.dev/start` です（独自ドメインは Worker の設定から追加）。
+Web のビルドは `.env.production` の `EXPO_PUBLIC_REVENUECAT_WEB_KEY` を使います。本番決済に切り替えるときはここを `rcb_` キーに差し替えます。
+手元から直接デプロイする場合は `npx wrangler login` のあと `npm run deploy:web` です。
 
 **ダッシュボードでの設定が必要（API からは設定できません）:**
 
