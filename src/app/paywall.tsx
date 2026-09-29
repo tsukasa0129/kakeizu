@@ -3,12 +3,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { PACKAGE_TYPE, type PurchasesOffering, type PurchasesPackage } from 'react-native-purchases';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button3D } from '@/components/Button3D';
 import { Mascot } from '@/components/Mascot';
+import { notify } from '@/lib/notify';
 import { getCurrentOffering, purchase, purchasesAvailable, restore } from '@/lib/purchases';
 import { usePremium } from '@/store/premium';
 import { colors, font, radius } from '@/theme';
@@ -56,10 +57,10 @@ export default function Paywall() {
     const outcome = await purchase(selected);
     setBusy(false);
     if (outcome === 'purchased') {
-      Alert.alert('ようこそプレミアムへ！', 'すべての機能が使えるようになりました。');
+      notify('ようこそプレミアムへ！', 'すべての機能が使えるようになりました。');
       router.back();
     } else if (outcome === 'failed') {
-      Alert.alert('購入できませんでした', '時間をおいて、もう一度お試しください。');
+      notify('購入できませんでした', '時間をおいて、もう一度お試しください。');
     }
   };
 
@@ -67,7 +68,7 @@ export default function Paywall() {
     setBusy(true);
     const ok = await restore().catch(() => false);
     setBusy(false);
-    Alert.alert('購入の復元', ok ? 'プレミアムを復元しました。' : '復元できる購入が見つかりませんでした。');
+    notify('購入の復元', ok ? 'プレミアムを復元しました。' : '復元できる購入が見つかりませんでした。');
     if (ok) router.back();
   };
 
@@ -113,7 +114,9 @@ export default function Paywall() {
             <Text style={font.body}>
               {purchasesAvailable()
                 ? 'プランを読み込めませんでした。通信状況を確認してください。'
-                : 'RevenueCat のAPIキーが未設定です。.env に EXPO_PUBLIC_REVENUECAT_IOS_KEY / ANDROID_KEY を設定し、開発ビルドで起動してください。'}
+                : Platform.OS === 'web'
+                  ? 'RevenueCat のAPIキーが未設定です。.env に EXPO_PUBLIC_REVENUECAT_WEB_KEY を設定してください。'
+                  : 'RevenueCat のAPIキーが未設定です。.env に EXPO_PUBLIC_REVENUECAT_IOS_KEY / ANDROID_KEY を設定し、開発ビルドで起動してください。'}
             </Text>
           </View>
         ) : (
@@ -157,7 +160,9 @@ export default function Paywall() {
         <Button3D title="購入を復元" variant="ghost" disabled={busy || !purchasesAvailable()} onPress={onRestore} />
 
         <Text style={[font.small, { textAlign: 'center' }]}>
-          サブスクリプションは期間終了の24時間前までに解約しない限り自動更新されます。解約はストアのアカウント設定から行えます。
+          {Platform.OS === 'web'
+            ? 'お支払いは Stripe で安全に処理されます。サブスクリプションは解約しない限り自動更新され、解約はプロフィールの「サブスクリプションを管理」からいつでも行えます。'
+            : 'サブスクリプションは期間終了の24時間前までに解約しない限り自動更新されます。解約はストアのアカウント設定から行えます。'}
         </Text>
         <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 20 }}>
           <Text style={styles.link} onPress={() => WebBrowser.openBrowserAsync(TERMS_URL)}>

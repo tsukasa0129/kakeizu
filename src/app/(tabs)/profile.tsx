@@ -1,10 +1,12 @@
 import { useRouter } from 'expo-router';
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import * as WebBrowser from 'expo-web-browser';
+import { Alert, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button3D } from '@/components/Button3D';
 import { ProgressBar } from '@/components/ProgressBar';
-import { FREE_SCAN_LIMIT, purchasesAvailable, restore } from '@/lib/purchases';
+import { notify } from '@/lib/notify';
+import { FREE_SCAN_LIMIT, getManagementURL, purchasesAvailable, restore } from '@/lib/purchases';
 import { isDemoMode } from '@/lib/extract';
 import { displayName, useFamily } from '@/store/family';
 import { levelForXp, useGame, xpForLevel } from '@/store/game';
@@ -32,9 +34,15 @@ export default function ProfileScreen() {
   const levelEnd = xpForLevel(level + 1);
 
   const onRestore = async () => {
-    if (!purchasesAvailable()) return Alert.alert('購入情報', 'RevenueCat が未設定です（.env を確認してください）。');
+    if (!purchasesAvailable()) return notify('購入情報', 'RevenueCat が未設定です（.env を確認してください）。');
     const ok = await restore();
-    Alert.alert('購入の復元', ok ? 'プレミアムを復元しました。' : '復元できる購入が見つかりませんでした。');
+    notify('購入の復元', ok ? 'プレミアムを復元しました。' : '復元できる購入が見つかりませんでした。');
+  };
+
+  const onManage = async () => {
+    const url = await getManagementURL().catch(() => null);
+    if (url) WebBrowser.openBrowserAsync(url);
+    else notify('サブスクリプション', '管理できるサブスクリプションが見つかりませんでした。');
   };
 
   const onReset = () =>
@@ -113,6 +121,9 @@ export default function ProfileScreen() {
             {isDemoMode() ? '\n（現在はデモモード：画像は送信されず、サンプル結果が表示されます）' : ''}
           </Text>
           <Button3D title="購入を復元" variant="secondary" onPress={onRestore} />
+          {Platform.OS === 'web' && isPremium && (
+            <Button3D title="サブスクリプションを管理" variant="secondary" onPress={onManage} />
+          )}
           <Button3D title="すべてのデータを削除" variant="danger" onPress={onReset} />
         </View>
       </ScrollView>
