@@ -10,7 +10,7 @@
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.tsukasa0129.kakeizu",
+      "bundleIdentifier": "com.tsk.kakeizu",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }

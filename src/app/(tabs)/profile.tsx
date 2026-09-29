@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
-import { Alert, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button3D } from '@/components/Button3D';
@@ -121,7 +121,7 @@ export default function ProfileScreen() {
             {isDemoMode() ? '\n（現在はデモモード：画像は送信されず、サンプル結果が表示されます）' : ''}
           </Text>
           <Button3D title="購入を復元" variant="secondary" onPress={onRestore} />
-          {Platform.OS === 'web' && isPremium && (
+          {isPremium && (
             <Button3D title="サブスクリプションを管理" variant="secondary" onPress={onManage} />
           )}
           <Button3D title="すべてのデータを削除" variant="danger" onPress={onReset} />

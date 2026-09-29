@@ -1,3 +1,4 @@
+import * as WebBrowser from 'expo-web-browser';
 import { Platform } from 'react-native';
 import Purchases, {
   LOG_LEVEL,
@@ -7,6 +8,7 @@ import Purchases, {
 } from 'react-native-purchases';
 
 import { usePremium } from '@/store/premium';
+import { ExternalPurchase } from '../../modules/external-purchase';
 
 /** Entitlement identifier configured in the RevenueCat dashboard. */
 export const ENTITLEMENT_ID = 'premium';
@@ -64,7 +66,50 @@ export async function purchase(pkg: PurchasesPackage): Promise<PurchaseOutcome> 
   }
 }
 
-/** Web Billing (Stripe) subscriptions are managed from RevenueCat's hosted page, not a store account. */
+// RevenueCat Web Purchase Link for the `default` offering (Web Billing / Stripe), e.g. https://pay.rev.cat/<token>
+const webPurchaseLink = process.env.EXPO_PUBLIC_REVENUECAT_WEB_PURCHASE_LINK;
+
+/**
+ * Whether the paywall may offer Stripe next to In-App Purchase. Only on iOS in Japan, and only
+ * once Apple has granted the external purchase entitlement (isEligible is false otherwise).
+ */
+export async function stripeCheckoutAvailable(): Promise<boolean> {
+  if (Platform.OS !== 'ios' || !configured || !webPurchaseLink || !ExternalPurchase) return false;
+  return ExternalPurchase.isEligibleAsync().catch(() => false);
+}
+
+/**
+ * Stripe checkout via a RevenueCat Web Purchase Link, opened in an in-app browser.
+ * Call only after the user accepted Apple's disclosure sheet.
+ */
+export async function purchaseWithStripe(): Promise<PurchaseOutcome> {
+  if (!configured || !webPurchaseLink || !ExternalPurchase) return 'failed';
+  try {
+    // Web purchase links attach the purchase to the App User ID in the URL, so switch the
+    // anonymous ID to a stable custom one first (logIn keeps existing purchases on this device).
+    let appUserID = await Purchases.getAppUserID();
+    if (await Purchases.isAnonymous()) {
+      appUserID = `kakeizu_${appUserID.replace('$RCAnonymousID:', '')}`;
+      await Purchases.logIn(appUserID);
+    }
+    // Apple requires reporting this token with the resulting transaction (External Purchase Server API).
+    const token = await ExternalPurchase.tokenAsync('IN_APP').catch(() => null);
+    if (token) {
+      Purchases.setAttributes({ apple_external_purchase_token: token, apple_external_purchase_token_at: new Date().toISOString() });
+      await Purchases.syncAttributesAndOfferingsIfNeeded().catch(() => {});
+    }
+    await WebBrowser.openBrowserAsync(`${webPurchaseLink.replace(/\/$/, '')}/${encodeURIComponent(appUserID)}`);
+    await Purchases.invalidateCustomerInfoCache();
+    const info = await Purchases.getCustomerInfo();
+    syncEntitlement(info);
+    return info.entitlements.active[ENTITLEMENT_ID] ? 'purchased' : 'cancelled';
+  } catch (e) {
+    console.warn('stripe purchase failed', e);
+    return 'failed';
+  }
+}
+
+/** Where to cancel or change the plan: App Store settings, Google Play, or RevenueCat's page for Stripe. */
 export async function getManagementURL(): Promise<string | null> {
   if (!configured) return null;
   const info = await Purchases.getCustomerInfo();
