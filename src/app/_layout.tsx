@@ -36,6 +36,9 @@ function RewardWatcher() {
 export default function RootLayout() {
   const hydrated = useHydrated();
   const onboarded = useGame((s) => s.onboarded);
+  const isPremium = usePremium((s) => s.isPremium);
+  // The app is subscription-only: onboarding → paywall → app. A lapsed subscription returns to the paywall.
+  const inApp = onboarded && isPremium;
 
   useEffect(() => {
     initPurchases();
@@ -60,18 +63,20 @@ export default function RootLayout() {
         <Stack.Protected guard={!onboarded}>
           <Stack.Screen name="onboarding" />
         </Stack.Protected>
-        <Stack.Protected guard={onboarded}>
+        <Stack.Protected guard={onboarded && !isPremium}>
+          <Stack.Screen name="paywall" options={{ gestureEnabled: false }} />
+        </Stack.Protected>
+        <Stack.Protected guard={inApp}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="person/[slot]" options={{ presentation: 'modal' }} />
           <Stack.Screen name="lesson/[id]" options={{ gestureEnabled: false }} />
           <Stack.Screen name="guide/[id]" />
           <Stack.Screen name="route-quiz" options={{ presentation: 'modal' }} />
           <Stack.Screen name="scan" />
-          <Stack.Screen name="paywall" options={{ presentation: 'modal' }} />
           <Stack.Screen name="celebrate" options={{ presentation: 'transparentModal', animation: 'fade' }} />
         </Stack.Protected>
       </Stack>
-      {onboarded && <RewardWatcher />}
+      {inApp && <RewardWatcher />}
     </SafeAreaProvider>
   );
 }

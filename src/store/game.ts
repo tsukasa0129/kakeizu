@@ -16,6 +16,8 @@ export interface Reward {
 
 interface GameState {
   onboarded: boolean;
+  /** How many generations back the user wants to reach (answered during onboarding). */
+  targetGeneration: number;
   xp: number;
   dailyGoal: number;
   streak: number;
@@ -33,7 +35,7 @@ interface GameState {
   scansUsed: number;
   pendingReward: Reward | null;
 
-  finishOnboarding: (dailyGoal: number) => void;
+  finishOnboarding: (dailyGoal: number, targetGeneration: number) => void;
   /** Adds XP, advances the streak and queues a celebration. */
   award: (xp: number, title: string, opts?: { counter?: Counter; badges?: string[]; celebrate?: boolean }) => void;
   bump: (counter: Counter) => void;
@@ -60,6 +62,7 @@ const emptyCounters = (): Record<Counter, number> => ({
 
 const initial = {
   onboarded: false,
+  targetGeneration: 4,
   xp: 0,
   dailyGoal: 30,
   streak: 0,
@@ -83,7 +86,7 @@ export const useGame = create<GameState>()(
     (set, get) => ({
       ...initial,
 
-      finishOnboarding: (dailyGoal) => set({ onboarded: true, dailyGoal }),
+      finishOnboarding: (dailyGoal, targetGeneration) => set({ onboarded: true, dailyGoal, targetGeneration }),
 
       rollDay: () => {
         const today = dayKey();
