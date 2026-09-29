@@ -1,0 +1,706 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<title>家系図クエスト 広告ビデオ</title>
+<link rel="stylesheet" href="./node_modules/@fontsource/m-plus-rounded-1c/500.css" />
+<link rel="stylesheet" href="./node_modules/@fontsource/m-plus-rounded-1c/800.css" />
+<link rel="stylesheet" href="./node_modules/@fontsource/m-plus-rounded-1c/900.css" />
+<style>
+  :root {
+    --green: #58CC02; --greenDark: #58A700; --greenLight: #D7FFB8;
+    --blue: #1CB0F6; --blueDark: #1899D6; --blueLight: #DDF4FF;
+    --orange: #FF9600; --orangeDark: #CD7900;
+    --yellow: #FFC800; --yellowDark: #E5A800;
+    --purple: #CE82FF; --purpleDark: #A568CC;
+    --red: #FF4B4B; --text: #3C3C3C; --muted: #777; --border: #E5E5E5;
+    --male: #1CB0F6; --female: #FF86D0;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1080px; height: 1920px; overflow: hidden; background: #fff; }
+  body { font-family: 'M PLUS Rounded 1c', sans-serif; color: var(--text); font-weight: 800; }
+  #stage { position: relative; width: 1080px; height: 1920px; overflow: hidden; background: #fff; }
+  .scene { position: absolute; inset: 0; opacity: 0; }
+  .abs { position: absolute; }
+  .center-x { left: 0; right: 0; text-align: center; }
+  .pill {
+    display: inline-block; padding: 14px 34px; border-radius: 999px;
+    font-size: 40px; font-weight: 900; color: #fff; letter-spacing: 2px;
+  }
+  .headline { font-size: 88px; font-weight: 900; line-height: 1.25; letter-spacing: 2px; }
+  .sub { font-size: 44px; font-weight: 800; color: var(--muted); line-height: 1.5; }
+  .char { display: inline-block; will-change: transform; }
+  .card {
+    background: #fff; border: 5px solid var(--border); border-bottom-width: 12px; border-radius: 36px;
+  }
+  svg { overflow: visible; }
+
+  /* ---------- scene 1: hook ---------- */
+  #s1 { background: #fff; }
+  #s1 .q { position: absolute; font-size: 120px; font-weight: 900; color: var(--locked, #AFAFAF); }
+  .slot {
+    position: absolute; width: 150px; height: 150px; border-radius: 50%;
+    border: 8px dashed #CFCFCF; background: #F7F7F7;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 72px; font-weight: 900; color: #BDBDBD;
+  }
+
+  /* ---------- scene 2: logo ---------- */
+  #s2 { background: var(--green); }
+  #s2 .title { font-size: 128px; font-weight: 900; color: #fff; letter-spacing: 6px;
+    text-shadow: 0 12px 0 var(--greenDark); }
+  #s2 .tag { font-size: 58px; font-weight: 900; color: #fff; }
+  .ray { position: absolute; left: 540px; top: 760px; width: 2400px; height: 120px; margin-top: -60px;
+    transform-origin: 0 50%; background: linear-gradient(90deg, rgba(255,255,255,.22), rgba(255,255,255,0)); }
+
+  /* ---------- scene 3: scan ---------- */
+  #s3 { background: var(--blueLight); }
+  .phone { position: absolute; left: 290px; top: 470px; width: 500px; height: 960px;
+    background: #222; border-radius: 76px; padding: 22px; box-shadow: 0 30px 0 rgba(0,0,0,.08); }
+  .phone .screen { position: relative; width: 100%; height: 100%; background: #fff; border-radius: 56px; overflow: hidden; }
+  .phone .notch { position: absolute; left: 50%; top: 18px; width: 150px; height: 40px; margin-left: -75px; background: #222; border-radius: 30px; z-index: 5; }
+  .koseki { position: absolute; left: 36px; top: 150px; width: 384px; height: 560px; background: #FFFDF6;
+    border: 3px solid #D9CFB5; border-radius: 10px; }
+  .koseki .col { position: absolute; top: 60px; width: 30px; border-radius: 4px; background: #CFC6AE; }
+  .koseki .stamp { position: absolute; left: 36px; bottom: 36px; width: 86px; height: 86px; border: 6px solid #E0463B; border-radius: 12px;
+    color: #E0463B; font-size: 30px; font-weight: 900; display: flex; align-items: center; justify-content: center; line-height: 1.05; text-align: center; }
+  .koseki .head { position: absolute; right: 26px; top: 20px; font-size: 30px; font-weight: 900; color: #8C7F60; writing-mode: vertical-rl; }
+  .scanline { position: absolute; left: 20px; right: 20px; height: 10px; background: var(--blue); border-radius: 10px;
+    box-shadow: 0 0 40px 14px rgba(28,176,246,.45); }
+  .corner { position: absolute; width: 70px; height: 70px; border: 10px solid var(--blue); }
+  .shutter { position: absolute; left: 50%; bottom: 44px; width: 120px; height: 120px; margin-left: -60px; border-radius: 50%;
+    background: var(--blue); border: 10px solid var(--blueLight); box-shadow: 0 0 0 6px var(--blue); }
+  .pcard { position: absolute; width: 440px; padding: 22px 26px; display: flex; align-items: center; gap: 22px; }
+  .avatar { width: 96px; height: 96px; border-radius: 50%; flex: none; display: flex; align-items: center; justify-content: center;
+    font-size: 50px; font-weight: 900; color: #fff; }
+  .pcard .name { font-size: 44px; font-weight: 900; }
+  .pcard .meta { font-size: 30px; font-weight: 800; color: var(--muted); margin-top: 2px; }
+  .ai-chip { position: absolute; left: 50%; top: 380px; transform: translateX(-50%); padding: 18px 40px; border-radius: 999px;
+    background: #fff; color: var(--blueDark); font-size: 40px; font-weight: 900; border: 5px solid var(--blue); white-space: nowrap; }
+
+  /* ---------- scene 4: tree ---------- */
+  #s4 { background: #fff; }
+  .node { position: absolute; width: 112px; height: 112px; margin: -56px 0 0 -56px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; font-size: 40px; font-weight: 900; color: #fff; }
+  .node.empty { border: 7px dashed #D0D0D0; background: #F7F7F7; color: #C4C4C4; }
+  .node .lbl { position: absolute; top: 118px; left: 50%; transform: translateX(-50%); white-space: nowrap;
+    font-size: 26px; font-weight: 900; color: var(--muted); }
+  .xp { position: absolute; font-size: 44px; font-weight: 900; color: var(--yellowDark); white-space: nowrap;
+    text-shadow: 0 4px 0 #fff, 0 -4px 0 #fff, 4px 0 0 #fff, -4px 0 0 #fff; }
+  .counter { position: absolute; left: 50%; top: 1630px; transform: translateX(-50%); padding: 22px 48px; white-space: nowrap;
+    display: flex; align-items: center; gap: 22px; font-size: 52px; }
+  .bar { width: 320px; height: 34px; background: #E5E5E5; border-radius: 20px; overflow: hidden; }
+  .bar > div { height: 100%; background: var(--green); border-radius: 20px; }
+
+  /* ---------- scene 5: navi ---------- */
+  #s5 { background: #FFF4E0; }
+  .todo { position: absolute; left: 90px; width: 900px; padding: 30px 36px; display: flex; align-items: center; gap: 30px; }
+  .check { width: 84px; height: 84px; border-radius: 50%; flex: none; border: 7px solid #D0D0D0; background: #fff;
+    display: flex; align-items: center; justify-content: center; }
+  .todo .t { font-size: 46px; font-weight: 900; }
+  .todo .s { font-size: 30px; font-weight: 800; color: var(--muted); margin-top: 4px; }
+  .bubble { position: absolute; padding: 26px 40px; background: #fff; border: 5px solid var(--border); border-radius: 36px;
+    font-size: 46px; font-weight: 900; white-space: nowrap; }
+
+  /* ---------- scene 6: game ---------- */
+  #s6 { background: #fff; }
+  .badge { position: absolute; width: 270px; text-align: center; }
+  .badge .medal { width: 200px; height: 200px; margin: 0 auto; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: 104px; border-bottom: 14px solid rgba(0,0,0,.15); }
+  .badge .bt { margin-top: 18px; font-size: 34px; font-weight: 900; }
+  .confetti { position: absolute; width: 22px; height: 34px; border-radius: 6px; }
+
+  /* ---------- scene 7: CTA ---------- */
+  #s7 { background: var(--green); }
+  .btn3d { position: absolute; left: 50%; transform: translateX(-50%); padding: 40px 90px; border-radius: 40px; background: #fff;
+    color: var(--greenDark); font-size: 64px; font-weight: 900; box-shadow: 0 16px 0 var(--greenDark); white-space: nowrap; }
+
+  /* ---------- wipe ---------- */
+  #wipe { position: absolute; left: 540px; top: 960px; width: 10px; height: 10px; border-radius: 50%; z-index: 50; }
+</style>
+</head>
+<body>
+<div id="stage">
+
+  <!-- ===== 1. HOOK ===== -->
+  <section class="scene" id="s1">
+    <div id="s1-slots"></div>
+    <div class="abs center-x headline" id="s1-l1" style="top:230px"></div>
+    <div class="abs center-x headline" id="s1-l2" style="top:350px;color:var(--greenDark)"></div>
+    <div class="abs center-x headline" id="s1-l3" style="top:470px"></div>
+    <div class="abs" id="s1-mascot" style="left:390px;top:1440px;width:300px;height:300px"></div>
+  </section>
+
+  <!-- ===== 2. LOGO ===== -->
+  <section class="scene" id="s2">
+    <div id="s2-rays"></div>
+    <div class="abs" id="s2-mascot" style="left:340px;top:560px;width:400px;height:400px"></div>
+    <div class="abs center-x title" id="s2-title" style="top:1030px"></div>
+    <div class="abs center-x tag" id="s2-tag" style="top:1250px">家系図づくりを、ゲームみたいに。</div>
+  </section>
+
+  <!-- ===== 3. SCAN ===== -->
+  <section class="scene" id="s3">
+    <div class="abs center-x" id="s3-head" style="top:120px">
+      <span class="pill" style="background:var(--blue)">STEP 1</span>
+      <div class="headline" style="margin-top:26px;font-size:84px">戸籍を<span style="color:var(--blueDark)">撮るだけ</span></div>
+    </div>
+    <div class="phone" id="s3-phone">
+      <div class="screen">
+        <div class="notch"></div>
+        <div class="koseki" id="s3-koseki">
+          <div class="head">戸籍全部事項証明書</div>
+          <div class="stamp">除<br>籍</div>
+        </div>
+        <div class="corner" style="left:24px;top:130px;border-right:none;border-bottom:none;border-radius:24px 0 0 0"></div>
+        <div class="corner" style="right:24px;top:130px;border-left:none;border-bottom:none;border-radius:0 24px 0 0"></div>
+        <div class="corner" style="left:24px;top:660px;border-right:none;border-top:none;border-radius:0 0 0 24px"></div>
+        <div class="corner" style="right:24px;top:660px;border-left:none;border-top:none;border-radius:0 0 24px 0"></div>
+        <div class="scanline" id="s3-scan"></div>
+        <div class="shutter" id="s3-shutter"></div>
+        <div class="abs" id="s3-flash" style="inset:0;background:#fff;opacity:0"></div>
+      </div>
+    </div>
+    <div class="ai-chip" id="s3-ai">✨ AIが読み取り中…</div>
+    <div id="s3-cards"></div>
+    <div class="abs center-x sub" id="s3-cap" style="top:1640px">人物・続柄・生年月日を<br><span style="color:var(--text)">AIが自動で読み取り</span></div>
+  </section>
+
+  <!-- ===== 4. TREE ===== -->
+  <section class="scene" id="s4">
+    <div class="abs center-x" id="s4-head" style="top:120px">
+      <span class="pill" style="background:var(--green)">STEP 2</span>
+      <div class="headline" style="margin-top:26px;font-size:84px">家系図が<span style="color:var(--greenDark)">自動で埋まる</span></div>
+    </div>
+    <svg class="abs" id="s4-lines" width="1080" height="1920" style="left:0;top:0"></svg>
+    <div id="s4-nodes"></div>
+    <div id="s4-xps"></div>
+    <div class="abs" id="s4-combo" style="left:540px;top:430px;white-space:nowrap;padding:18px 40px;border-radius:999px;background:var(--yellow);color:#fff;font-size:46px;font-weight:900;box-shadow:0 10px 0 var(--yellowDark)">曾祖父母 8人そろった！ +640 XP</div>
+    <div class="card counter" id="s4-counter">
+      <span>🌳</span><span id="s4-count">1 / 15人</span>
+      <div class="bar"><div id="s4-bar" style="width:0%"></div></div>
+    </div>
+  </section>
+
+  <!-- ===== 5. NAVI ===== -->
+  <section class="scene" id="s5">
+    <div class="abs center-x" id="s5-head" style="top:120px">
+      <span class="pill" style="background:var(--orange)">STEP 3</span>
+      <div class="headline" style="margin-top:26px;font-size:84px">役所ナビで<span style="color:var(--orangeDark)">迷わない</span></div>
+    </div>
+    <div id="s5-todos"></div>
+    <div class="abs" id="s5-mascot" style="left:70px;top:1480px;width:280px;height:280px"></div>
+    <div class="bubble" id="s5-bubble" style="left:370px;top:1560px">次に取る戸籍も<br>教えるよ！</div>
+  </section>
+
+  <!-- ===== 6. GAME ===== -->
+  <section class="scene" id="s6">
+    <div id="s6-confetti"></div>
+    <div class="abs center-x headline" id="s6-head" style="top:150px;font-size:84px">楽しいから、<br><span style="color:var(--purpleDark)">続けられる。</span></div>
+    <div class="abs center-x" id="s6-streak" style="top:480px">
+      <div style="font-size:230px;line-height:1">🔥</div>
+      <div style="font-size:96px;font-weight:900;color:var(--orange);margin-top:6px"><span id="s6-days">1</span>日連続！</div>
+    </div>
+    <div class="card abs" id="s6-xp" style="left:140px;top:960px;width:800px;padding:30px 40px">
+      <div style="display:flex;justify-content:space-between;font-size:44px;font-weight:900">
+        <span>Lv.<span id="s6-lv">4</span></span><span style="color:var(--yellowDark)"><span id="s6-xpn">0</span> XP</span>
+      </div>
+      <div style="margin-top:18px;height:44px;border-radius:30px;background:#E5E5E5;overflow:hidden">
+        <div id="s6-xpbar" style="height:100%;width:30%;background:var(--yellow);border-radius:30px"></div>
+      </div>
+      <div id="s6-lvup" class="abs" style="right:-30px;top:-60px;padding:14px 30px;border-radius:999px;background:var(--purple);color:#fff;font-size:40px;font-weight:900;white-space:nowrap">LEVEL UP!</div>
+    </div>
+    <div id="s6-badges"></div>
+  </section>
+
+  <!-- ===== 7. CTA ===== -->
+  <section class="scene" id="s7">
+    <div id="s7-rays"></div>
+    <div class="abs center-x" id="s7-copy" style="top:260px;font-size:72px;font-weight:900;color:#fff;line-height:1.4">あなたのルーツを<br>たどる冒険へ。</div>
+    <div class="abs" id="s7-mascot" style="left:365px;top:600px;width:350px;height:350px"></div>
+    <div class="abs center-x" id="s7-title" style="top:1010px;font-size:124px;font-weight:900;color:#fff;letter-spacing:6px;text-shadow:0 12px 0 var(--greenDark)">家系図クエスト</div>
+    <div class="btn3d" id="s7-btn" style="top:1320px">今すぐはじめる ▶</div>
+    <div class="abs center-x" id="s7-os" style="top:1590px;font-size:40px;color:#fff;opacity:.95">iPhone / Android 対応</div>
+  </section>
+
+  <div id="wipe"></div>
+</div>
+
+<script>
+/* ============================================================
+   Deterministic timeline: window.render(t) draws the frame at t seconds.
+   ============================================================ */
+const $ = (id) => document.getElementById(id);
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const prog = (t, a, b) => clamp((t - a) / (b - a));
+const lerp = (a, b, p) => a + (b - a) * p;
+const easeOut = (p) => 1 - Math.pow(1 - p, 3);
+const easeInOut = (p) => (p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2);
+const easeIn = (p) => p * p * p;
+function easeBack(p) { const c1 = 1.9, c3 = c1 + 1; return 1 + c3 * Math.pow(p - 1, 3) + c1 * Math.pow(p - 1, 2); }
+function elastic(p) {
+  if (p === 0 || p === 1) return p;
+  return Math.pow(2, -10 * p) * Math.sin((p * 10 - 0.75) * (2 * Math.PI / 3)) + 1;
+}
+const pop = (t, a, d = 0.45) => easeBack(prog(t, a, a + d));
+function tf(el, { x = 0, y = 0, s = 1, r = 0, o = 1, sx, sy } = {}) {
+  el.style.transform = `translate(${x}px, ${y}px) rotate(${r}deg) scale(${sx ?? s}, ${sy ?? s})`;
+  el.style.opacity = o;
+}
+// scene windows [start, end]
+const SC = {
+  s1: [0, 3.4], s2: [3.4, 7.0], s3: [7.0, 13.0], s4: [13.0, 18.6],
+  s5: [18.6, 23.6], s6: [23.6, 27.6], s7: [27.6, 32.0],
+};
+const DURATION = 32.0;
+
+/* ---------- mascot SVG (same drawing as src/components/Mascot.tsx) ---------- */
+function mascotSVG(mood) {
+  const eyes = mood === 'think'
+    ? `<circle cx="49" cy="58" r="5" fill="#3C3C3C"/><circle cx="77" cy="58" r="5" fill="#3C3C3C"/>`
+    : `<circle cx="47" cy="63" r="${mood === 'wow' ? 6 : 5}" fill="#3C3C3C"/><circle cx="75" cy="63" r="${mood === 'wow' ? 6 : 5}" fill="#3C3C3C"/>
+       <circle cx="49" cy="61" r="1.8" fill="#fff"/><circle cx="77" cy="61" r="1.8" fill="#fff"/>`;
+  const mouth = mood === 'wow'
+    ? `<ellipse cx="60" cy="84" rx="6" ry="7" fill="#8A4B22"/>`
+    : mood === 'think'
+      ? `<path d="M54 85 L66 83" stroke="#8A4B22" stroke-width="3" stroke-linecap="round"/>`
+      : `<path d="M50 80 Q60 92 70 80" stroke="#8A4B22" stroke-width="3.5" fill="none" stroke-linecap="round"/>`;
+  return `<svg viewBox="0 0 120 120" width="100%" height="100%">
+    <g class="leaves" style="transform-origin:60px 26px">
+      <path d="M60 22 C44 4, 22 12, 30 30 C38 40, 52 34, 60 26 Z" fill="#58A700"/>
+      <path d="M60 22 C76 4, 98 12, 90 30 C82 40, 68 34, 60 26 Z" fill="#58CC02"/>
+    </g>
+    <ellipse cx="60" cy="72" rx="36" ry="38" fill="#C98B4B"/>
+    <ellipse cx="60" cy="80" rx="24" ry="24" fill="#E8B878"/>
+    <circle cx="46" cy="62" r="11" fill="#fff"/><circle cx="74" cy="62" r="11" fill="#fff"/>
+    ${eyes}${mouth}
+    <circle cx="36" cy="78" r="5" fill="#FF9FB0" opacity=".6"/><circle cx="84" cy="78" r="5" fill="#FF9FB0" opacity=".6"/>
+    <path d="M44 106 q-6 6 -12 6" stroke="#8A5A2B" stroke-width="5" stroke-linecap="round" fill="none"/>
+    <path d="M76 106 q6 6 12 6" stroke="#8A5A2B" stroke-width="5" stroke-linecap="round" fill="none"/>
+  </svg>`;
+}
+function mascotAnim(el, t, base = 0) {
+  // bouncy idle + leaf wiggle
+  const b = Math.sin((t - base) * 6.2);
+  const leaves = el.querySelector('.leaves');
+  if (leaves) leaves.style.transform = `rotate(${Math.sin((t - base) * 9) * 6}deg)`;
+  return { y: -Math.abs(b) * 18, sx: 1 + b * 0.025, sy: 1 - b * 0.025 };
+}
+function splitChars(el, text) {
+  el.innerHTML = [...text].map((c) => `<span class="char">${c}</span>`).join('');
+  return [...el.children];
+}
+
+/* ============ build: scene 1 ============ */
+const s1l = [splitChars($('s1-l1'), 'あなたの'), splitChars($('s1-l2'), 'ひいおじいちゃんの'), splitChars($('s1-l3'), '名前、言えますか？')];
+$('s1-mascot').innerHTML = mascotSVG('think');
+const s1SlotPos = [
+  [540, 1260], [330, 1060], [750, 1060],
+  [200, 850], [440, 850], [640, 850], [880, 850],
+];
+$('s1-slots').innerHTML = s1SlotPos.map(([x, y], i) =>
+  `<div class="slot" id="s1s${i}" style="left:${x - 75}px;top:${y - 75}px">？</div>`).join('');
+
+/* ============ build: scene 2 ============ */
+$('s2-mascot').innerHTML = mascotSVG('happy');
+$('s7-mascot').innerHTML = mascotSVG('wow');
+const s2t = splitChars($('s2-title'), '家系図クエスト');
+$('s2-rays').innerHTML = Array.from({ length: 12 }, (_, i) => `<div class="ray" data-a="${i * 30}"></div>`).join('');
+$('s7-rays').innerHTML = Array.from({ length: 12 }, (_, i) => `<div class="ray" data-a="${i * 30}" style="top:775px"></div>`).join('');
+
+/* ============ build: scene 3 ============ */
+(() => {
+  const k = $('s3-koseki');
+  const xs = [300, 250, 200, 160, 120];
+  let html = '';
+  xs.forEach((x, i) => { html += `<div class="col" style="left:${x}px;height:${[430, 300, 380, 260, 200][i]}px"></div>`; });
+  // header grid lines
+  html += `<div class="abs" style="left:16px;right:16px;top:40px;height:4px;background:#D9CFB5"></div>`;
+  html += `<div class="abs" style="left:100px;top:40px;bottom:16px;width:4px;background:#D9CFB5"></div>`;
+  k.insertAdjacentHTML('beforeend', html);
+})();
+const s3People = [
+  { n: '山田 一郎', m: '祖父・大正15年生', c: 'var(--male)', ch: '一', side: -1, y: 520 },
+  { n: '山田 ハナ', m: '祖母・昭和3年生', c: 'var(--female)', ch: 'ハ', side: 1, y: 760 },
+  { n: '山田 太郎', m: '父・昭和28年生', c: 'var(--male)', ch: '太', side: -1, y: 1000 },
+  { n: '山田 和子', m: '母・昭和31年生', c: 'var(--female)', ch: '和', side: 1, y: 1240 },
+];
+$('s3-cards').innerHTML = s3People.map((p, i) => `
+  <div class="card pcard" id="s3c${i}" style="top:${p.y}px;left:${p.side < 0 ? 40 : 600}px">
+    <div class="avatar" style="background:${p.c}">${p.ch}</div>
+    <div><div class="name">${p.n}</div><div class="meta">${p.m}</div></div>
+  </div>`).join('');
+
+/* ============ build: scene 4 (tree) ============ */
+const TREE = []; // {slot, x, y, color, label, char}
+(() => {
+  const rows = [
+    { y: 1430, n: 1 }, { y: 1160, n: 2 }, { y: 890, n: 4 }, { y: 630, n: 8 },
+  ];
+  const labels = { 1: 'あなた', 2: '父', 3: '母', 4: '祖父', 5: '祖母', 6: '祖父', 7: '祖母' };
+  const chars = { 1: '私', 2: '太', 3: '和', 4: '一', 5: 'ハ', 6: '正', 7: '菊', 8: '源', 9: 'トメ', 10: '清', 11: 'キヨ', 12: '勘', 13: 'ウメ', 14: '善', 15: 'シヅ' };
+  rows.forEach((r, g) => {
+    const w = g === 3 ? 910 : g === 2 ? 840 : g === 1 ? 500 : 0;
+    for (let i = 0; i < r.n; i++) {
+      const slot = r.n + i;
+      const x = r.n === 1 ? 540 : 540 - w / 2 + (w / (r.n - 1)) * i;
+      const color = slot === 1 ? 'var(--green)' : slot % 2 === 0 ? 'var(--male)' : 'var(--female)';
+      TREE.push({ slot, x, y: r.y, color, label: labels[slot] ?? (slot % 2 === 0 ? '曾祖父' : '曾祖母'), char: chars[slot] });
+    }
+  });
+})();
+// order in which the slots get filled + time (relative to scene start)
+const FILL = [
+  [1, 0.9], [2, 1.35], [3, 1.6], [4, 2.05], [5, 2.25], [6, 2.45], [7, 2.65],
+  [8, 3.05], [9, 3.2], [10, 3.35], [11, 3.5], [12, 3.65], [13, 3.8], [14, 3.95], [15, 4.1],
+];
+const fillAt = Object.fromEntries(FILL);
+const xpFor = (slot) => (slot === 1 ? 10 : slot < 4 ? 20 : slot < 8 ? 40 : 80);
+$('s4-nodes').innerHTML = TREE.map((n) => `
+  <div class="node empty" id="n${n.slot}" style="left:${n.x}px;top:${n.y}px">
+    <span class="nc">？</span><div class="lbl">${n.label}</div>
+  </div>`).join('');
+$('s4-xps').innerHTML = TREE.filter((n) => n.slot < 8).map((n) => `<div class="xp" id="x${n.slot}" style="left:${n.x - 60}px;top:${n.y - 150}px">+${xpFor(n.slot)} XP</div>`).join('');
+(() => {
+  const byslot = Object.fromEntries(TREE.map((n) => [n.slot, n]));
+  let d = '', base = '';
+  TREE.forEach((c) => {
+    if (c.slot === 1) return;
+    const p = byslot[Math.floor(c.slot / 2)];
+    const my = (p.y + c.y) / 2;
+    const pd = `M${p.x} ${p.y - 56} V${my} H${c.x} V${c.y + 56}`;
+    base += `<path d="${pd}" fill="none" stroke="#E5E5E5" stroke-width="10" stroke-linejoin="round" stroke-linecap="round"/>`;
+    d += `<path id="l${c.slot}" d="${pd}" fill="none" stroke="#58CC02" stroke-width="10" stroke-linejoin="round" stroke-linecap="round"/>`;
+  });
+  $('s4-lines').innerHTML = base + d;
+  TREE.forEach((c) => {
+    if (c.slot === 1) return;
+    const el = $('l' + c.slot);
+    const L = el.getTotalLength();
+    el.dataset.len = L;
+    el.style.strokeDasharray = L;
+  });
+})();
+
+/* ============ build: scene 5 ============ */
+const TODOS = [
+  { t: '本籍地を調べる', s: '住民票で本籍地をチェック' },
+  { t: '広域交付でまとめて請求', s: '最寄りの役所で親族の戸籍もOK' },
+  { t: 'コンビニ交付・郵送もガイド', s: '行けない人もだいじょうぶ' },
+  { t: '次に取る戸籍を自動リスト化', s: 'スキャンから「従前戸籍」を発見' },
+];
+$('s5-todos').innerHTML = TODOS.map((d, i) => `
+  <div class="card todo" id="s5t${i}" style="top:${470 + i * 240}px">
+    <div class="check" id="s5c${i}"></div>
+    <div><div class="t">${d.t}</div><div class="s">${d.s}</div></div>
+  </div>`).join('');
+$('s5-mascot').innerHTML = mascotSVG('happy');
+const CHECK_SVG = `<svg width="48" height="48" viewBox="0 0 24 24"><path d="M4 12.5l5 5L20 6.5" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+
+/* ============ build: scene 6 ============ */
+const BADGES = [
+  { e: '📜', t: '初めての戸籍', c: '#FFE9A8' },
+  { e: '🌳', t: '祖父母\nコンプリート', c: '#D7FFB8' },
+  { e: '🧭', t: '役所\nナビゲーター', c: '#DDF4FF' },
+];
+$('s6-badges').innerHTML = BADGES.map((b, i) => `
+  <div class="badge" id="s6b${i}" style="left:${ 540 - 135 + (i - 1) * 320}px;top:1260px">
+    <div class="medal" style="background:${b.c}">${b.e}</div>
+    <div class="bt">${b.t.replace('\n', '<br>')}</div>
+  </div>`).join('');
+const CONF_COLORS = ['#58CC02', '#1CB0F6', '#FF9600', '#FFC800', '#CE82FF', '#FF4B4B', '#FF86D0'];
+function rng(seed) { return () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; }; }
+const CONF = (() => {
+  const r = rng(42);
+  return Array.from({ length: 70 }, (_, i) => ({
+    x: r() * 1080, vx: (r() - 0.5) * 300, vy: -900 - r() * 900, rot: r() * 360, vr: (r() - 0.5) * 900,
+    c: CONF_COLORS[i % CONF_COLORS.length], delay: r() * 0.25, y0: 1920 + r() * 60,
+  }));
+})();
+$('s6-confetti').innerHTML = CONF.map((_, i) => `<div class="confetti" id="cf${i}" style="background:${CONF[i].c}"></div>`).join('');
+
+/* ============ render ============ */
+function sceneAlpha(t, name, fadeIn = 0.001, fadeOut = 0.001) {
+  const [a, b] = SC[name];
+  if (t < a || t >= b) return 0;
+  return Math.min(prog(t, a, a + fadeIn), 1 - prog(t, b - fadeOut, b));
+}
+
+function renderS1(t) {
+  const el = $('s1');
+  const o = sceneAlpha(t, 's1');
+  el.style.opacity = o; if (!o) return;
+  // text characters pop in
+  let delay = 0.15;
+  s1l.forEach((chars, li) => {
+    chars.forEach((c, i) => {
+      const p = pop(t, delay + i * 0.045, 0.4);
+      tf(c, { y: (1 - p) * 60, s: lerp(0.3, 1, p), o: clamp(p * 2) });
+    });
+    delay += chars.length * 0.045 + 0.12;
+  });
+  // question slots wobble in
+  s1SlotPos.forEach((_, i) => {
+    const s = $('s1s' + i);
+    const p = pop(t, 0.6 + i * 0.08, 0.5);
+    tf(s, { s: p, r: Math.sin(t * 5 + i) * 8, o: clamp(p * 3) });
+  });
+  const m = $('s1-mascot');
+  const mp = easeOut(prog(t, 1.2, 1.7));
+  const ma = mascotAnim(m, t);
+  tf(m, { y: (1 - mp) * 400 + ma.y * 0.4, r: Math.sin(t * 3) * 5 });
+  // exit: everything squishes
+  const ex = easeIn(prog(t, 3.05, 3.4));
+  el.style.transform = `scale(${1 - ex * 0.08})`;
+}
+
+function renderS2(t) {
+  const el = $('s2');
+  const o = sceneAlpha(t, 's2');
+  el.style.opacity = o; if (!o) return;
+  const lt = t - SC.s2[0];
+  document.querySelectorAll('#s2-rays .ray').forEach((r) => {
+    tf(r, { r: +r.dataset.a + lt * 20, o: clamp(lt * 2) });
+  });
+  const m = $('s2-mascot');
+  const mp = elastic(prog(lt, 0.15, 1.1));
+  const ma = mascotAnim(m, lt, 1.1);
+  const idle = lt > 1.1 ? 1 : 0;
+  tf(m, { s: mp, y: ma.y * idle, sx: mp * (idle ? ma.sx : 1), sy: mp * (idle ? ma.sy : 1) });
+  s2t.forEach((c, i) => {
+    const p = pop(lt, 0.7 + i * 0.07, 0.45);
+    const wave = lt > 1.8 ? Math.sin((lt - 1.8) * 6 - i * 0.7) * 8 : 0;
+    tf(c, { y: (1 - p) * -120 + wave, s: p, o: clamp(p * 3) });
+  });
+  const tg = easeOut(prog(lt, 1.5, 2.0));
+  tf($('s2-tag'), { y: (1 - tg) * 40, o: tg });
+}
+
+function renderS3(t) {
+  const el = $('s3');
+  const o = sceneAlpha(t, 's3');
+  el.style.opacity = o; if (!o) return;
+  const lt = t - SC.s3[0];
+  const hp = pop(lt, 0.05, 0.5);
+  tf($('s3-head'), { y: (1 - hp) * -80, o: clamp(hp * 2) });
+  const pp = easeBack(prog(lt, 0.2, 0.8));
+  // phone slides up, later shrinks aside a bit
+  tf($('s3-phone'), { y: (1 - pp) * 900, s: lerp(1, 0.86, easeInOut(prog(lt, 2.4, 3.0))) });
+  // koseki photographed: shutter press + flash
+  const press = prog(lt, 0.95, 1.05) - prog(lt, 1.05, 1.2);
+  tf($('s3-shutter'), { s: 1 - press * 0.15 });
+  $('s3-flash').style.opacity = (1 - prog(lt, 1.05, 1.45)) * (lt > 1.05 ? 1 : 0);
+  // scan line sweeps
+  const sp = prog(lt, 1.35, 2.5);
+  const scan = $('s3-scan');
+  const pp2 = sp * 2;
+  scan.style.top = lerp(140, 700, easeInOut(pp2 <= 1 ? pp2 : 2 - pp2)) + 'px';
+  scan.style.opacity = sp > 0 && sp < 1 ? 1 : 0;
+  // AI chip
+  const ap = pop(lt, 1.4, 0.4) * (1 - easeIn(prog(lt, 4.9, 5.2)));
+  const ai = $('s3-ai');
+  ai.textContent = lt < 2.6 ? '✨ AIが読み取り中…' : '✅ 4人を見つけました！';
+  ai.style.transform = `translateX(-50%) scale(${ap})`;
+  ai.style.opacity = clamp(ap * 3);
+  // cards fly out of the phone
+  s3People.forEach((p, i) => {
+    const c = $('s3c' + i);
+    const cp = easeBack(prog(lt, 2.7 + i * 0.22, 3.25 + i * 0.22));
+    const fromX = p.side < 0 ? 290 : -300;
+    tf(c, { x: (1 - cp) * fromX, y: (1 - cp) * (960 - p.y - 60), s: lerp(0.3, 1, cp), o: clamp(cp * 3), r: (1 - cp) * p.side * 20 });
+  });
+  const cap = easeOut(prog(lt, 3.3, 3.8));
+  tf($('s3-cap'), { y: (1 - cap) * 50, o: cap });
+  // exit
+  const ex = easeIn(prog(lt, 5.6, 6.0));
+  el.style.transform = `translateX(${-ex * 1080}px)`;
+}
+
+function renderS4(t) {
+  const el = $('s4');
+  const o = sceneAlpha(t, 's4');
+  el.style.opacity = o; if (!o) return;
+  const lt = t - SC.s4[0];
+  const en = easeOut(prog(lt, 0, 0.4));
+  el.style.transform = `translateX(${(1 - en) * 1080}px)`;
+  const hp = pop(lt, 0.2, 0.5);
+  tf($('s4-head'), { y: (1 - hp) * -80, o: clamp(hp * 2) });
+  let filled = 0, xp = 0;
+  TREE.forEach((n, idx) => {
+    const node = $('n' + n.slot);
+    const appear = pop(lt, 0.3 + idx * 0.03, 0.35);
+    const ft = fillAt[n.slot];
+    const isFilled = lt >= ft;
+    if (isFilled) { filled++; }
+    if (isFilled !== (node.dataset.f === '1')) {
+      node.dataset.f = isFilled ? '1' : '0';
+      node.classList.toggle('empty', !isFilled);
+      node.style.background = isFilled ? n.color : '';
+      node.style.boxShadow = isFilled ? '0 10px 0 rgba(0,0,0,.14)' : '';
+      node.querySelector('.nc').textContent = isFilled ? n.char : '？';
+    }
+    const fp = isFilled ? elastic(prog(lt, ft, ft + 0.6)) : 1;
+    const sc = appear * (isFilled ? lerp(0.6, 1, fp) : 1);
+    tf(node, { s: sc, o: clamp(appear * 3) });
+    // XP float
+    const x = $('x' + n.slot);
+    if (x) {
+    const xpP = prog(lt, ft, ft + 0.9);
+    x.style.opacity = xpP > 0 && xpP < 1 ? (1 - easeIn(xpP)) : 0;
+    x.style.transform = `translateY(${-easeOut(xpP) * 90}px) scale(${0.7 + easeBack(clamp(xpP * 3)) * 0.3})`;
+    }
+    if (n.slot !== 1) {
+      const line = $('l' + n.slot);
+      const lp = easeOut(prog(lt, ft - 0.25, ft));
+      line.style.strokeDashoffset = line.dataset.len * (1 - lp);
+    }
+  });
+  FILL.forEach(([s, ft]) => { if (lt >= ft) xp += xpFor(s); });
+  $('s4-count').textContent = `${filled} / 15人`;
+  $('s4-bar').style.width = (filled / 15) * 100 + '%';
+  const cb = pop(lt, 4.25, 0.45) * (1 - easeIn(prog(lt, 5.0, 5.2)));
+  const combo = $('s4-combo');
+  combo.style.transform = `translate(-50%, 0) scale(${cb}) rotate(-3deg)`;
+  combo.style.opacity = clamp(cb * 3);
+  const cp = pop(lt, 0.5, 0.5);
+  const bump = filled && lt - FILL[filled - 1][1] < 0.15 ? 1.05 : 1;
+  const counter = $('s4-counter');
+  counter.style.transform = `translateX(-50%) scale(${cp * bump})`;
+  counter.style.opacity = clamp(cp * 3);
+  const ex = easeIn(prog(lt, 5.2, 5.6));
+  if (ex > 0) el.style.transform = `translateY(${-ex * 1920}px)`;
+}
+
+function renderS5(t) {
+  const el = $('s5');
+  const o = sceneAlpha(t, 's5');
+  el.style.opacity = o; if (!o) return;
+  const lt = t - SC.s5[0];
+  const en = easeOut(prog(lt, 0, 0.4));
+  el.style.transform = `translateY(${(1 - en) * 1920}px)`;
+  const hp = pop(lt, 0.25, 0.5);
+  tf($('s5-head'), { y: (1 - hp) * -80, o: clamp(hp * 2) });
+  TODOS.forEach((_, i) => {
+    const card = $('s5t' + i);
+    const cp = easeBack(prog(lt, 0.45 + i * 0.15, 0.95 + i * 0.15));
+    tf(card, { x: (1 - cp) * 1100 });
+    const ct = 1.5 + i * 0.55;
+    const chk = $('s5c' + i);
+    const done = lt >= ct;
+    if (done !== (chk.dataset.d === '1')) {
+      chk.dataset.d = done ? '1' : '0';
+      chk.innerHTML = done ? CHECK_SVG : '';
+      chk.style.background = done ? 'var(--green)' : '#fff';
+      chk.style.borderColor = done ? 'var(--greenDark)' : '#D0D0D0';
+      card.style.borderColor = done ? 'var(--green)' : '';
+    }
+    tf(chk, { s: done ? elastic(prog(lt, ct, ct + 0.6)) : 1 });
+  });
+  const m = $('s5-mascot');
+  const mp = easeBack(prog(lt, 1.2, 1.7));
+  const ma = mascotAnim(m, lt);
+  tf(m, { x: (1 - mp) * -400, y: ma.y, sx: ma.sx, sy: ma.sy });
+  const bp = pop(lt, 1.6, 0.45);
+  tf($('s5-bubble'), { s: bp, o: clamp(bp * 3) });
+  $('s5-bubble').style.transformOrigin = '0% 60%';
+  const ex = easeIn(prog(lt, 4.6, 5.0));
+  if (ex > 0) el.style.transform = `scale(${1 - ex * 0.3})`, el.style.opacity = 1 - ex;
+}
+
+function renderS6(t) {
+  const el = $('s6');
+  const o = sceneAlpha(t, 's6');
+  el.style.opacity = o; if (!o) return;
+  const lt = t - SC.s6[0];
+  const hp = pop(lt, 0.05, 0.5);
+  tf($('s6-head'), { s: hp, o: clamp(hp * 2) });
+  const sp = elastic(prog(lt, 0.3, 1.2));
+  tf($('s6-streak'), { s: sp, o: clamp(sp * 3) });
+  $('s6-days').textContent = Math.max(1, Math.min(7, Math.floor(1 + prog(lt, 0.4, 1.4) * 6)));
+  const xpp = pop(lt, 0.8, 0.45);
+  tf($('s6-xp'), { y: (1 - xpp) * 120, o: clamp(xpp * 3) });
+  // XP bar fills and overflows into level-up
+  const fill = easeInOut(prog(lt, 1.1, 2.0));
+  const leveled = fill >= 0.999;
+  $('s6-xpbar').style.width = leveled ? easeOut(prog(lt, 2.0, 2.4)) * 15 + '%' : lerp(30, 100, fill) + '%';
+  $('s6-lv').textContent = leveled ? 5 : 4;
+  $('s6-xpn').textContent = Math.round(lerp(120, 480, easeOut(prog(lt, 1.1, 2.2))));
+  const lu = pop(lt, 2.0, 0.4);
+  tf($('s6-lvup'), { s: lu, o: clamp(lu * 3), r: 8 });
+  BADGES.forEach((_, i) => {
+    const bp = elastic(prog(lt, 2.1 + i * 0.2, 2.9 + i * 0.2));
+    tf($('s6b' + i), { s: bp, o: clamp(bp * 3), r: Math.sin(lt * 3 + i) * 4 });
+  });
+  // confetti burst at level up
+  CONF.forEach((c, i) => {
+    const e = $('cf' + i);
+    const ct = lt - 2.0 - c.delay;
+    if (ct <= 0) { e.style.opacity = 0; return; }
+    const x = c.x + c.vx * ct;
+    const y = c.y0 + c.vy * ct + 0.5 * 1500 * ct * ct;
+    e.style.opacity = 1;
+    e.style.transform = `translate(${x}px, ${y}px) rotate(${c.rot + c.vr * ct}deg)`;
+  });
+}
+
+function renderS7(t) {
+  const el = $('s7');
+  const o = sceneAlpha(t, 's7');
+  el.style.opacity = o; if (!o) return;
+  const lt = t - SC.s7[0];
+  document.querySelectorAll('#s7-rays .ray').forEach((r) => {
+    tf(r, { r: +r.dataset.a + lt * 18, o: clamp(lt * 2) });
+  });
+  const cp = easeOut(prog(lt, 0.35, 0.85));
+  tf($('s7-copy'), { y: (1 - cp) * 60, o: cp });
+  const m = $('s7-mascot');
+  const mp = elastic(prog(lt, 0.2, 1.1));
+  const ma = mascotAnim(m, lt, 1.1);
+  const idle = lt > 1.1 ? 1 : 0;
+  tf(m, { s: mp, y: ma.y * idle, sx: mp * (idle ? ma.sx : 1), sy: mp * (idle ? ma.sy : 1) });
+  const tp = pop(lt, 0.8, 0.5);
+  tf($('s7-title'), { s: tp, o: clamp(tp * 3) });
+  const bp = pop(lt, 1.3, 0.5);
+  const pulse = lt > 2.0 ? 1 + Math.sin((lt - 2.0) * 7) * 0.035 : 1;
+  const btn = $('s7-btn');
+  btn.style.transform = `translateX(-50%) scale(${bp * pulse})`;
+  btn.style.opacity = clamp(bp * 3);
+  const op = easeOut(prog(lt, 1.8, 2.3));
+  tf($('s7-os'), { y: (1 - op) * 30, o: op * 0.95 });
+}
+
+// green circle wipe between hook → logo and navi/game → CTA
+function renderWipe(t) {
+  const w = $('wipe');
+  let p = 0, color = '#58CC02';
+  if (t > SC.s2[0] - 0.4 && t < SC.s2[0] + 0.25) p = easeInOut(prog(t, SC.s2[0] - 0.4, SC.s2[0])) * (1 - prog(t, SC.s2[0], SC.s2[0] + 0.25));
+  else if (t > SC.s6[0] - 0.4 && t < SC.s6[0] + 0.3) { color = '#CE82FF'; p = easeInOut(prog(t, SC.s6[0] - 0.4, SC.s6[0])) * (1 - prog(t, SC.s6[0], SC.s6[0] + 0.3)); }
+  else if (t > SC.s7[0] - 0.4 && t < SC.s7[0] + 0.25) p = easeInOut(prog(t, SC.s7[0] - 0.4, SC.s7[0])) * (1 - prog(t, SC.s7[0], SC.s7[0] + 0.25));
+  w.style.background = color;
+  w.style.transform = `translate(-50%, -50%) scale(${p * 460})`;
+  w.style.opacity = p > 0 ? 1 : 0;
+  w.style.left = '540px'; w.style.top = '960px';
+}
+
+window.DURATION = DURATION;
+window.render = function (t) {
+  renderS1(t); renderS2(t); renderS3(t); renderS4(t); renderS5(t); renderS6(t); renderS7(t);
+  renderWipe(t);
+};
+window.render(0);
+
+// Preview mode: open ad.html in a browser to watch it play in real time.
+if (!/[?&]render/.test(location.search)) {
+  const fit = () => {
+    const s = Math.min(innerWidth / 1080, innerHeight / 1920);
+    document.body.style.transform = `scale(${s})`;
+    document.body.style.transformOrigin = '0 0';
+  };
+  fit(); addEventListener('resize', fit);
+  const start = performance.now();
+  const loop = () => { window.render(((performance.now() - start) / 1000) % DURATION); requestAnimationFrame(loop); };
+  requestAnimationFrame(loop);
+}
+</script>
+</body>
+</html>
