@@ -102,6 +102,15 @@ export default function ProfileScreen() {
           </View>
         )}
 
+        <View style={[styles.card, { borderColor: colors.orange }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Icon name="books" size={22} />
+            <Text style={font.h3}>家系図を本にする</Text>
+          </View>
+          <Text style={font.body}>完成した家系図を製本して、ご自宅にお届けします。贈りものにも。</Text>
+          <Button3D title="くわしく見る" variant="secondary" onPress={() => router.push('/book')} />
+        </View>
+
         {documents.length > 0 && (
           <View style={styles.card}>
             <Text style={font.h3}>読み取った書類</Text>
