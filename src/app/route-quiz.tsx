@@ -5,6 +5,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button3D } from '@/components/Button3D';
+import { Icon } from '@/components/Icon';
 import { Mascot, MascotSays } from '@/components/Mascot';
 import { ProgressBar } from '@/components/ProgressBar';
 import { ROUTE_QUESTIONS, guideById, recommendRoute } from '@/data/guides';
@@ -24,9 +25,8 @@ export default function RouteQuiz() {
       <SafeAreaView style={[styles.container, { alignItems: 'center', justifyContent: 'center', padding: 24, gap: 16 }]}>
         <Mascot size={140} mood="wow" />
         <Text style={font.small}>あなたへのおすすめは…</Text>
-        <Text style={[font.h1, { textAlign: 'center' }]}>
-          {guide.emoji} {guide.title}
-        </Text>
+        <Icon name={guide.icon} size={48} />
+        <Text style={[font.h1, { textAlign: 'center' }]}>{guide.title}</Text>
         <Text style={[font.body, { textAlign: 'center' }]}>{rec.reason}</Text>
         <View style={{ width: '100%', gap: 8 }}>
           <Button3D

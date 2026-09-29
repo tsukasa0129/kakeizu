@@ -5,6 +5,7 @@ import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleShee
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button3D } from '@/components/Button3D';
+import { Icon } from '@/components/Icon';
 import { awardProgress } from '@/lib/progress';
 import {
   FREE_MAX_GENERATION,
@@ -52,7 +53,10 @@ export default function PersonEditor() {
   if (generationOf(slot) > maxGen) {
     return (
       <SafeAreaView style={[styles.container, { padding: 24, justifyContent: 'center', gap: 16 }]}>
-        <Text style={font.h2}>👑 プレミアムで解放</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <Icon name="crown" size={28} />
+          <Text style={font.h2}>プレミアムで解放</Text>
+        </View>
         <Text style={font.body}>{relationLabel(slot)}の世代はプレミアムプランで入力できます。</Text>
         <Button3D title="プランを見る" variant="premium" onPress={() => router.replace('/paywall')} />
       </SafeAreaView>
@@ -133,7 +137,10 @@ export default function PersonEditor() {
             </View>
           ))}
           {existing && existing.sourceDocIds.length > 0 && (
-            <Text style={font.small}>📜 {existing.sourceDocIds.length}枚の書類から読み取った情報を含みます</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Icon name="scroll" size={16} />
+              <Text style={[font.small, { flex: 1 }]}>{existing.sourceDocIds.length}枚の書類から読み取った情報を含みます</Text>
+            </View>
           )}
           <Button3D title="保存する" onPress={save} />
           {existing && <Button3D title="この人を削除" variant="ghost" onPress={remove} />}

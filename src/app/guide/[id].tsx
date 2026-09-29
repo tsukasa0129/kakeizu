@@ -4,6 +4,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button3D } from '@/components/Button3D';
+import { Icon } from '@/components/Icon';
 import { ProgressBar } from '@/components/ProgressBar';
 import { guideById, guideCheckKey, isGuideComplete } from '@/data/guides';
 import { awardProgress } from '@/lib/progress';
@@ -42,7 +43,7 @@ export default function GuideDetail() {
         </View>
       </View>
       <ScrollView contentContainerStyle={{ padding: 20, gap: 14, paddingBottom: 60 }}>
-        <Text style={{ fontSize: 44 }}>{guide.emoji}</Text>
+        <Icon name={guide.icon} size={52} />
         <Text style={font.h1}>{guide.title}</Text>
         <Text style={[font.body, { color: colors.textMuted }]}>{guide.subtitle}</Text>
 
@@ -65,7 +66,7 @@ export default function GuideDetail() {
                 <View style={styles.checklist}>
                   {step.checklist.map((c) => (
                     <View key={c} style={styles.checkRow}>
-                      <Text style={{ color: palette.main, fontWeight: '800' }}>✓</Text>
+                      <Icon name="check" size={18} color={palette.main} style={{ marginTop: 2 }} />
                       <Text style={[font.body, { flex: 1 }]}>{c}</Text>
                     </View>
                   ))}
@@ -82,7 +83,10 @@ export default function GuideDetail() {
 
         {guide.tips && (
           <View style={styles.tips}>
-            <Text style={font.h3}>💡 ヒント</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Icon name="bulb" size={22} />
+              <Text style={font.h3}>ヒント</Text>
+            </View>
             {guide.tips.map((t) => (
               <Text key={t} style={font.body}>
                 ・{t}

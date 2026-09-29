@@ -1,5 +1,7 @@
+import type { IconName } from '@/components/Icon';
+
 export interface LessonCard {
-  emoji: string;
+  icon: IconName;
   title: string;
   body: string;
 }
@@ -14,7 +16,7 @@ export interface QuizQuestion {
 export interface Lesson {
   id: string;
   title: string;
-  emoji: string;
+  icon: IconName;
   xp: number;
   cards: LessonCard[];
   quiz: QuizQuestion[];
@@ -26,21 +28,21 @@ export const LESSONS: Lesson[] = [
   {
     id: 'what-is-koseki',
     title: '戸籍ってなに？',
-    emoji: '📖',
+    icon: 'book',
     xp: 15,
     cards: [
       {
-        emoji: '🏛️',
+        icon: 'cityHall',
         title: '家族の公式な記録',
         body: '戸籍は、日本人の出生・婚姻・死亡・養子縁組などの身分関係を記録した公文書です。家系図づくりの一番確かな資料になります。',
       },
       {
-        emoji: '📍',
+        icon: 'pin',
         title: '本籍地の役所が管理',
         body: '戸籍は「本籍地」の市区町村が管理しています。本籍地は住所とは別物。住民票を「本籍・筆頭者の記載あり」で取ると確認できます。',
       },
       {
-        emoji: '👤',
+        icon: 'person',
         title: '筆頭者',
         body: '戸籍の最初に書かれている人を「筆頭者」といいます。請求するときは「本籍地」と「筆頭者の氏名」をセットで伝えます。',
       },
@@ -63,21 +65,21 @@ export const LESSONS: Lesson[] = [
   {
     id: 'koseki-types',
     title: '戸籍の種類',
-    emoji: '🗂️',
+    icon: 'folder',
     xp: 15,
     cards: [
       {
-        emoji: '📄',
+        icon: 'document',
         title: '戸籍謄本（全部事項証明書）',
         body: 'その戸籍に載っている全員分の写し。家系図づくりには「謄本（全部事項）」を選びましょう。抄本（個人事項証明書）は1人分だけです。',
       },
       {
-        emoji: '📕',
+        icon: 'redBook',
         title: '除籍謄本',
         body: '婚姻・死亡・転籍などで全員が抜けて、誰もいなくなった戸籍の写しです。亡くなった祖父母の情報はここに残っていることが多いです。',
       },
       {
-        emoji: '📜',
+        icon: 'scroll',
         title: '改製原戸籍謄本',
         body: '法改正で戸籍の様式が作り替えられる前の戸籍です（昭和32年頃からの改製、平成のコンピュータ化など）。改製後の戸籍には載らない情報があるので、さかのぼる時に必要です。',
       },
@@ -100,26 +102,26 @@ export const LESSONS: Lesson[] = [
   {
     id: 'koiki',
     title: '広域交付で一気に集める',
-    emoji: '🚀',
+    icon: 'rocket',
     xp: 20,
     cards: [
       {
-        emoji: '🏢',
+        icon: 'office',
         title: '最寄りの窓口でOK',
         body: '2024年3月1日から「広域交付」が始まり、本籍地が遠くても、全国どこの市区町村の窓口でも戸籍証明書を請求できるようになりました。',
       },
       {
-        emoji: '👨‍👩‍👧',
+        icon: 'family',
         title: '請求できる範囲',
         body: '本人・配偶者・父母や祖父母など（直系尊属）・子や孫など（直系卑属）の戸籍が対象です。兄弟姉妹、おじ・おばの戸籍は対象外です。',
       },
       {
-        emoji: '🪪',
+        icon: 'idCard',
         title: '本人が窓口へ',
         body: '請求する本人が窓口に行き、マイナンバーカード・運転免許証・パスポートなど顔写真付きの本人確認書類を見せます。郵送や代理人による請求はできません。',
       },
       {
-        emoji: '⏳',
+        icon: 'hourglass',
         title: '時間に余裕を',
         body: '他の自治体に照会するため、当日中に出ないことや、後日の受け取りになることがあります。コンピュータ化されていない一部の戸籍は対象外です。事前に窓口へ電話で確認すると安心です。',
       },
@@ -142,26 +144,26 @@ export const LESSONS: Lesson[] = [
   {
     id: 'trace-back',
     title: 'さかのぼり方',
-    emoji: '🔎',
+    icon: 'search',
     xp: 20,
     cards: [
       {
-        emoji: '1️⃣',
+        icon: 'flag',
         title: 'まずは自分の戸籍から',
         body: '最初に今の自分（または親）の戸籍謄本を取ります。ここがスタート地点です。',
       },
       {
-        emoji: '➡️',
+        icon: 'arrowRight',
         title: '「従前戸籍」を探す',
         body: '身分事項欄の「従前戸籍」や「入籍」「転籍」「婚姻」の記載に、ひとつ前の戸籍の本籍地と筆頭者が書かれています。それを次に請求します。',
       },
       {
-        emoji: '🔁',
+        icon: 'repeat',
         title: 'くり返して上の世代へ',
         body: 'この作業をくり返すと、明治時代の戸籍までたどれることもあります。このアプリは読み取った書類から「次に請求する戸籍」を自動でリストにします。',
       },
       {
-        emoji: '⚠️',
+        icon: 'warning',
         title: '保存期間に注意',
         body: '除籍や改製原戸籍の保存期間は2010年の改正で150年になりましたが、それ以前に期間（80年）を過ぎて廃棄されたものもあります。古い戸籍ほど早めの請求がおすすめ。',
       },
@@ -184,21 +186,21 @@ export const LESSONS: Lesson[] = [
   {
     id: 'fees-mail',
     title: '手数料と郵送請求',
-    emoji: '✉️',
+    icon: 'envelope',
     xp: 20,
     cards: [
       {
-        emoji: '💴',
+        icon: 'yen',
         title: '手数料の目安',
         body: '多くの自治体で、戸籍謄本は1通450円、除籍謄本・改製原戸籍謄本は1通750円です。自治体により異なる場合があります。',
       },
       {
-        emoji: '📮',
+        icon: 'postbox',
         title: '郵送請求に必要なもの',
         body: '①請求書（自治体サイトからダウンロード）②本人確認書類のコピー ③手数料分の定額小為替 ④切手を貼った返信用封筒。親や祖父母の戸籍なら、つながりがわかる戸籍の写しを求められることもあります。',
       },
       {
-        emoji: '🏤',
+        icon: 'postOffice',
         title: '定額小為替',
         body: '手数料は郵便局で買える「定額小為替」で支払うのが一般的です。1枚ごとに発行手数料がかかるので、多めに見積もるなら「おつり」が出る組み合わせにしておくと安心。',
       },
@@ -221,21 +223,21 @@ export const LESSONS: Lesson[] = [
   {
     id: 'reading',
     title: '古い戸籍の読み方',
-    emoji: '🖋️',
+    icon: 'pen',
     xp: 20,
     cards: [
       {
-        emoji: '🗓️',
+        icon: 'calendar',
         title: '和暦に慣れよう',
         body: '明治(1868〜)・大正(1912〜)・昭和(1926〜)・平成(1989〜)・令和(2019〜)。古い戸籍では「壱・弐・参・拾」などの大字で書かれています。AI読み取りでは西暦にも変換します。',
       },
       {
-        emoji: '👶',
+        icon: 'baby',
         title: '続柄',
         body: '「長男」「二女」「妻」などを続柄といいます。明治の戸籍では「戸主」を中心に「祖母」「弟」「甥」など大家族が一つの戸籍に載っていることがあります。',
       },
       {
-        emoji: '✖️',
+        icon: 'cross',
         title: 'バツ印は「除籍」',
         body: '名前に×印が付いている人は、婚姻や死亡でその戸籍から抜けた（除籍された）人です。情報が消えたわけではありません。',
       },

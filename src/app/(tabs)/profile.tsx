@@ -4,6 +4,7 @@ import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button3D } from '@/components/Button3D';
+import { Icon, type IconName } from '@/components/Icon';
 import { ProgressBar } from '@/components/ProgressBar';
 import { notify } from '@/lib/notify';
 import { FREE_SCAN_LIMIT, getManagementURL, purchasesAvailable, restore } from '@/lib/purchases';
@@ -67,7 +68,10 @@ export default function ProfileScreen() {
           </View>
           <View style={{ flex: 1 }}>
             <Text style={font.h2}>{me ? displayName(me) : 'ゲスト'}</Text>
-            <Text style={font.small}>{isPremium ? '👑 プレミアム会員' : 'フリープラン'}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              {isPremium && <Icon name="crown" size={16} />}
+              <Text style={font.small}>{isPremium ? 'プレミアム会員' : 'フリープラン'}</Text>
+            </View>
           </View>
         </View>
 
@@ -78,15 +82,18 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.statsGrid}>
-          <Stat emoji="🔥" value={game.streak} label="連続日数" />
-          <Stat emoji="⚡" value={game.xp} label="合計XP" />
-          <Stat emoji="🌳" value={Object.keys(persons).length} label="登録人数" />
-          <Stat emoji="📜" value={documents.length} label="読み取った書類" />
+          <Stat icon="flame" value={game.streak} label="連続日数" />
+          <Stat icon="bolt" value={game.xp} label="合計XP" />
+          <Stat icon="tree" value={Object.keys(persons).length} label="登録人数" />
+          <Stat icon="scroll" value={documents.length} label="読み取った書類" />
         </View>
 
         {!isPremium && (
           <View style={[styles.card, { borderColor: colors.purple }]}>
-            <Text style={font.h3}>👑 プレミアムにアップグレード</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Icon name="crown" size={22} />
+              <Text style={font.h3}>プレミアムにアップグレード</Text>
+            </View>
             <Text style={font.body}>
               AI読み取り無制限・5代前までの家系図・高祖父母ユニット。
               {'\n'}無料のAI読み取り：残り {Math.max(0, FREE_SCAN_LIMIT - game.scansUsed)} 回
@@ -100,7 +107,7 @@ export default function ProfileScreen() {
             <Text style={font.h3}>読み取った書類</Text>
             {documents.map((d) => (
               <View key={d.id} style={styles.docRow}>
-                <Text style={{ fontSize: 22 }}>📜</Text>
+                <Icon name="scroll" size={26} />
                 <View style={{ flex: 1 }}>
                   <Text style={{ fontWeight: '700', color: colors.text }}>{DOC_LABELS[d.type] ?? d.title}</Text>
                   <Text style={font.small}>
@@ -131,10 +138,10 @@ export default function ProfileScreen() {
   );
 }
 
-function Stat({ emoji, value, label }: { emoji: string; value: number; label: string }) {
+function Stat({ icon, value, label }: { icon: IconName; value: number; label: string }) {
   return (
     <View style={styles.stat}>
-      <Text style={{ fontSize: 22 }}>{emoji}</Text>
+      <Icon name={icon} size={28} />
       <View>
         <Text style={styles.statValue}>{value}</Text>
         <Text style={font.small}>{label}</Text>

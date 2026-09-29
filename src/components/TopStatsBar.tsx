@@ -1,6 +1,7 @@
 import { useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { Icon } from '@/components/Icon';
 import { levelForXp, useGame } from '@/store/game';
 import { usePremium } from '@/store/premium';
 import { colors } from '@/theme';
@@ -20,21 +21,21 @@ export function TopStatsBar() {
         onPress={() => router.push(isPremium ? '/profile' : '/paywall')}
         accessibilityLabel="プレミアム"
       >
-        <Text style={styles.emoji}>{isPremium ? '👑' : '🌱'}</Text>
+        <Icon name={isPremium ? 'crown' : 'sprout'} size={24} />
         <Text style={[styles.value, { color: isPremium ? colors.purple : colors.green }]}>
           {isPremium ? 'PRO' : 'FREE'}
         </Text>
       </Pressable>
       <Pressable style={styles.item} onPress={() => router.push('/quests')} accessibilityLabel="連続記録">
-        <Text style={[styles.emoji, !activeToday && styles.dim]}>🔥</Text>
+        <Icon name="flame" size={24} style={!activeToday && styles.dim} />
         <Text style={[styles.value, { color: activeToday ? colors.orange : colors.locked }]}>{streak}</Text>
       </Pressable>
       <Pressable style={styles.item} onPress={() => router.push('/profile')} accessibilityLabel="XP">
-        <Text style={styles.emoji}>⚡</Text>
+        <Icon name="bolt" size={24} />
         <Text style={[styles.value, { color: colors.yellowDark }]}>{xp}</Text>
       </Pressable>
       <Pressable style={styles.item} onPress={() => router.push('/profile')} accessibilityLabel="レベル">
-        <Text style={styles.emoji}>🏅</Text>
+        <Icon name="medal" size={24} />
         <Text style={[styles.value, { color: colors.blue }]}>Lv{levelForXp(xp)}</Text>
       </Pressable>
     </View>
@@ -52,7 +53,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bg,
   },
   item: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 4 },
-  emoji: { fontSize: 22 },
   dim: { opacity: 0.35 },
   value: { fontSize: 16, fontWeight: '800' },
 });

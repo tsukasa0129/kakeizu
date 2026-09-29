@@ -80,7 +80,7 @@ export default function Onboarding() {
 
           {step === 2 && (
             <>
-              <MascotSays text="1日の目標を決めよう！毎日つづけると連続記録🔥がのびるよ。" />
+              <MascotSays text="1日の目標を決めよう！毎日つづけると連続記録がのびるよ。" />
               <View style={styles.options}>
                 {GOALS.map((g) => (
                   <Option

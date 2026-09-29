@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { Icon } from '@/components/Icon';
 import { MascotSays } from '@/components/Mascot';
 import { ProgressBar } from '@/components/ProgressBar';
 import { GUIDES, guideCheckKey } from '@/data/guides';
@@ -30,7 +31,7 @@ export default function GuideTab() {
         <MascotSays text="戸籍の取り方をいっしょに確認しよう。迷ったら「おすすめルート診断」から！" size={72} />
 
         <Pressable style={[styles.card, styles.quizCard]} onPress={() => router.push('/route-quiz')}>
-          <Text style={{ fontSize: 34 }}>🧭</Text>
+          <Icon name="compass" size={40} />
           <View style={{ flex: 1 }}>
             <Text style={[font.h3, { color: '#fff' }]}>おすすめルート診断</Text>
             <Text style={{ color: '#fff', fontWeight: '600' }}>3つの質問で、あなたに合った取り方を提案</Text>
@@ -69,8 +70,8 @@ export default function GuideTab() {
               style={styles.card}
               onPress={() => router.push({ pathname: '/guide/[id]', params: { id: g.id } })}
             >
-              <View style={[styles.iconBubble, { backgroundColor: palette.main }]}>
-                <Text style={{ fontSize: 24 }}>{g.emoji}</Text>
+              <View style={[styles.iconBubble, { backgroundColor: palette.main + '22', borderWidth: 2, borderColor: palette.main }]}>
+                <Icon name={g.icon} size={28} />
               </View>
               <View style={{ flex: 1, gap: 4 }}>
                 <Text style={font.h3}>{g.title}</Text>
