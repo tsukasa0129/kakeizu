@@ -6,7 +6,9 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button3D } from '@/components/Button3D';
+import { ExampleBox, TermList } from '@/components/Explainers';
 import { Icon } from '@/components/Icon';
+import { KosekiFigure } from '@/components/KosekiFigure';
 import { Mascot } from '@/components/Mascot';
 import { ProgressBar } from '@/components/ProgressBar';
 import { lessonById } from '@/data/lessons';
@@ -76,29 +78,9 @@ export default function LessonScreen() {
             <Text style={font.h2}>{card.title}</Text>
             <Text style={[font.body, { fontSize: 17, lineHeight: 27 }]}>{card.body}</Text>
           </View>
-          {card.terms && card.terms.length > 0 && (
-            <View style={styles.terms}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <Icon name="books" size={20} />
-                <Text style={[font.h3, { color: colors.purpleDark }]}>ことばの解説</Text>
-              </View>
-              {card.terms.map((t) => (
-                <View key={t.word} style={{ gap: 2 }}>
-                  <Text style={styles.termWord}>{t.word}</Text>
-                  <Text style={[font.body, { fontSize: 15, lineHeight: 23 }]}>{t.meaning}</Text>
-                </View>
-              ))}
-            </View>
-          )}
-          {card.example && (
-            <View style={styles.example}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <Icon name="bulb" size={20} />
-                <Text style={[font.h3, { color: colors.blueDark }]}>たとえば</Text>
-              </View>
-              <Text style={[font.body, { fontSize: 16, lineHeight: 25 }]}>{card.example}</Text>
-            </View>
-          )}
+          <KosekiFigure id={card.figure} />
+          <TermList terms={card.terms} />
+          <ExampleBox text={card.example} />
         </ScrollView>
       )}
 
@@ -167,9 +149,6 @@ const styles = StyleSheet.create({
   scrollBody: { padding: 20, gap: 18 },
   kicker: { fontWeight: '800', color: colors.purple, fontSize: 14 },
   card: { borderWidth: 2, borderColor: colors.border, borderRadius: radius.lg, padding: 22, gap: 12 },
-  terms: { borderWidth: 2, borderColor: colors.purple, borderRadius: radius.lg, padding: 18, gap: 12 },
-  termWord: { fontSize: 16, fontWeight: '800', color: colors.purpleDark },
-  example: { backgroundColor: colors.blueLight, borderRadius: radius.lg, padding: 18, gap: 8 },
   choice: { borderWidth: 2, borderBottomWidth: 4, borderColor: colors.border, borderRadius: radius.md, padding: 16 },
   choiceText: { fontSize: 16, fontWeight: '700', color: colors.text },
   footer: { padding: 20, paddingBottom: 28, borderTopWidth: 2, borderTopColor: colors.border },
