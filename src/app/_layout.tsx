@@ -73,6 +73,7 @@ export default function RootLayout() {
           <Stack.Screen name="guide/[id]" />
           <Stack.Screen name="route-quiz" options={{ presentation: 'modal' }} />
           <Stack.Screen name="scan" />
+          <Stack.Screen name="book" options={{ presentation: 'modal' }} />
           <Stack.Screen name="celebrate" options={{ presentation: 'transparentModal', animation: 'fade' }} />
         </Stack.Protected>
       </Stack>

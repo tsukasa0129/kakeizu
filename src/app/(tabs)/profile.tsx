@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -21,6 +22,7 @@ const DOC_LABELS: Record<string, string> = {
 };
 
 export default function ProfileScreen() {
+  const router = useRouter();
   const game = useGame();
   const persons = useFamily((s) => s.persons);
   const documents = useFamily((s) => s.documents);
@@ -76,6 +78,15 @@ export default function ProfileScreen() {
           <Stat icon="bolt" value={game.xp} label="合計XP" />
           <Stat icon="tree" value={Object.keys(persons).length} label="登録人数" />
           <Stat icon="scroll" value={documents.length} label="読み取った書類" />
+        </View>
+
+        <View style={[styles.card, { borderColor: colors.orange }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Icon name="books" size={22} />
+            <Text style={font.h3}>家系図を本にする</Text>
+          </View>
+          <Text style={font.body}>完成した家系図を製本して、ご自宅にお届けします。贈りものにも。</Text>
+          <Button3D title="くわしく見る" variant="secondary" onPress={() => router.push('/book')} />
         </View>
 
         {documents.length > 0 && (
