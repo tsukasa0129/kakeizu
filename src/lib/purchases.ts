@@ -19,7 +19,9 @@ const storeKey = Platform.select({
 });
 // RevenueCat Test Store: simulated purchases without store accounts.
 // Set only for the development/preview EAS profiles (and local .env), never for production.
-const apiKey = process.env.EXPO_PUBLIC_REVENUECAT_TEST_KEY || storeKey;
+const nativeKey = process.env.EXPO_PUBLIC_REVENUECAT_TEST_KEY || storeKey;
+// Web uses RevenueCat Web Billing (Stripe). `rcb_sb_` keys hit the Stripe sandbox, `rcb_` keys charge for real.
+const apiKey = Platform.OS === 'web' ? process.env.EXPO_PUBLIC_REVENUECAT_WEB_KEY : nativeKey;
 
 let configured = false;
 
@@ -30,7 +32,7 @@ const syncEntitlement = (info: CustomerInfo) => {
 };
 
 export async function initPurchases() {
-  if (configured || !apiKey || Platform.OS === 'web') return;
+  if (configured || !apiKey) return;
   try {
     if (__DEV__) await Purchases.setLogLevel(LOG_LEVEL.WARN);
     Purchases.configure({ apiKey });
@@ -60,6 +62,13 @@ export async function purchase(pkg: PurchasesPackage): Promise<PurchaseOutcome> 
     console.warn('purchase failed', e);
     return 'failed';
   }
+}
+
+/** Web Billing (Stripe) subscriptions are managed from RevenueCat's hosted page, not a store account. */
+export async function getManagementURL(): Promise<string | null> {
+  if (!configured) return null;
+  const info = await Purchases.getCustomerInfo();
+  return info.managementURL;
 }
 
 export async function restore(): Promise<boolean> {

@@ -59,10 +59,25 @@ RevenueCat プロジェクト「家系図クエスト」は設定済みです（
 | iOS アプリ | `com.tsukasa0129.kakeizu` — 商品 `com.tsukasa0129.kakeizu.premium_annual` / `...premium_monthly` |
 | Android アプリ | `com.tsukasa0129.kakeizu` — 商品 `premium:annual` / `premium:monthly`（サブスクID:基本プランID） |
 | Test Store | `premium_annual`（¥4,800 / $29.99）/ `premium_monthly`（¥800 / $4.99） |
+| Web Billing（Stripe） | `premium_annual_web`（¥4,800 / $29.99）/ `premium_monthly_web`（¥800 / $4.99）— Stripe アカウント `acct_1UKvYcAi6mygNgkU` に接続 |
 
 `.env.example` に公開 SDK キーが入っているので `cp .env.example .env` だけで動きます。
 開発ビルド（`__DEV__`）では `EXPO_PUBLIC_REVENUECAT_TEST_KEY` の **Test Store** が使われ、ストアのアカウントなしで購入フローを試せます。
 リリースビルドでは iOS / Android のキーが使われます。
+
+#### Web 課金（Stripe）
+
+`npx expo start --web` で動かす Web 版は、RevenueCat **Web Billing** 経由で Stripe 決済します。
+`react-native-purchases` が Web では自動で `purchases-js` に切り替わるため、アプリのコードは iOS / Android と共通です
+（`src/lib/purchases.ts` が Web では `EXPO_PUBLIC_REVENUECAT_WEB_KEY` を使います）。
+
+- 購入ボタンを押すと RevenueCat のチェックアウト（Stripe）が開き、完了すると entitlement `premium` が有効になります
+- 現在のキー `rcb_sb_...` は **Stripe サンドボックス**です。テストカード `4242 4242 4242 4242`（有効期限は未来の日付、CVC は任意）で試せます
+- 解約・支払い方法の変更は、プロフィールの「サブスクリプションを管理」（RevenueCat のカスタマーポータル）から行えます
+- Web のユーザー ID はブラウザの localStorage に保存される匿名 ID です。別のブラウザ・端末で購入を引き継ぐには、ログイン機能を追加して `Purchases.logIn(userId)` を呼んでください
+
+本番公開前: RevenueCat の Web Billing アプリ設定で Stripe を本番モードに接続し、本番用の `rcb_` 公開キーに差し替えてください。
+サポート用メールアドレス（領収書に記載）もアプリ設定で登録してください。
 
 リリース前に残っている作業（ストア側）:
 
