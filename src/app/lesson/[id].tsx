@@ -8,6 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button3D } from '@/components/Button3D';
 import { ExampleBox, TermList } from '@/components/Explainers';
 import { Icon } from '@/components/Icon';
+import { KosekiFigure } from '@/components/KosekiFigure';
 import { Mascot } from '@/components/Mascot';
 import { ProgressBar } from '@/components/ProgressBar';
 import { lessonById } from '@/data/lessons';
@@ -77,6 +78,7 @@ export default function LessonScreen() {
             <Text style={font.h2}>{card.title}</Text>
             <Text style={[font.body, { fontSize: 17, lineHeight: 27 }]}>{card.body}</Text>
           </View>
+          <KosekiFigure id={card.figure} />
           <TermList terms={card.terms} />
           <ExampleBox text={card.example} />
         </ScrollView>

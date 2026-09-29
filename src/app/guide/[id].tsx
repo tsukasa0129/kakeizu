@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button3D } from '@/components/Button3D';
 import { ExampleBox, TermList } from '@/components/Explainers';
 import { Icon } from '@/components/Icon';
+import { KosekiFigure } from '@/components/KosekiFigure';
 import { ProgressBar } from '@/components/ProgressBar';
 import { guideById, guideCheckKey, isGuideComplete } from '@/data/guides';
 import { awardProgress } from '@/lib/progress';
@@ -64,6 +65,7 @@ export default function GuideDetail() {
                 <Text style={[font.h3, { flex: 1 }]}>{step.title}</Text>
               </Pressable>
               <Text style={font.body}>{step.body}</Text>
+              <KosekiFigure id={step.figure} />
               {step.checklist && (
                 <View style={styles.checklist}>
                   {step.checklist.map((c) => (

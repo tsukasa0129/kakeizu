@@ -1,5 +1,6 @@
 import type { Term } from '@/components/Explainers';
 import type { IconName } from '@/components/Icon';
+import type { FigureId } from '@/components/KosekiFigure';
 
 export interface GuideStep {
   id: string;
@@ -10,6 +11,8 @@ export interface GuideStep {
   example?: string;
   /** ステップに出てくるむずかしい単語の解説。 */
   terms?: Term[];
+  /** 実物のイメージ（見本図）。 */
+  figure?: FigureId;
 }
 
 export interface Guide {
@@ -40,6 +43,7 @@ export const GUIDES: Guide[] = [
       {
         id: 'juminhyo',
         title: '本籍地が書かれた住民票を取る',
+        figure: 'juminhyo',
         body: '今住んでいる市区町村の役所で、住民票を取ります。申請書に「本籍・筆頭者を載せる」というチェック欄があるので、必ずチェックしましょう。\n\nマイナンバーカードがあれば、コンビニのコピー機でも取れます。',
         checklist: ['身分証（マイナンバーカード・運転免許証など）', '手数料（役所によって200〜300円くらい）'],
         example: 'ふつうの住民票には本籍地は書かれていません。チェックを忘れると本籍地がわからないので注意！',
@@ -226,6 +230,7 @@ export const GUIDES: Guide[] = [
       {
         id: 'read',
         title: '「ひとつ前の戸籍」を見つける',
+        figure: 'juzen',
         body: '取った戸籍の中から、「従前戸籍」「婚姻」「転籍」などと書かれた部分を探します。そこに、前の戸籍の本籍地と筆頭者が書かれています。\n\nアプリでスキャンすれば、自動で見つけて「次に請求する戸籍」リストに入れてくれます。',
         example: '父の欄に「従前戸籍 〇〇県〇〇市〇〇町1番地 山田一郎」とあれば、次は「〇〇市の、山田一郎さんが筆頭者の戸籍」を頼みます。',
         terms: [
