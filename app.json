@@ -10,13 +10,13 @@
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.tsukasa0129.kakeizu",
+      "bundleIdentifier": "com.tsk.kakeizu",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
-      "package": "com.tsukasa0129.kakeizu",
+      "package": "com.tsk.kakeizu",
       "adaptiveIcon": {
         "backgroundColor": "#58CC02",
         "foregroundImage": "./assets/android-icon-foreground.png",

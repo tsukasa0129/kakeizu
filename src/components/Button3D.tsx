@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } fro
 
 import { colors, radius } from '@/theme';
 
-type Variant = 'primary' | 'blue' | 'secondary' | 'danger' | 'premium' | 'ghost';
+type Variant = 'primary' | 'blue' | 'secondary' | 'danger' | 'premium' | 'ghost' | 'black' | 'outline';
 
 const VARIANTS: Record<Variant, { bg: string; edge: string; text: string; border?: string }> = {
   primary: { bg: colors.green, edge: colors.greenDark, text: '#fff' },
@@ -12,6 +12,8 @@ const VARIANTS: Record<Variant, { bg: string; edge: string; text: string; border
   danger: { bg: colors.red, edge: colors.redDark, text: '#fff' },
   premium: { bg: colors.purple, edge: colors.purpleDark, text: '#fff' },
   ghost: { bg: 'transparent', edge: 'transparent', text: colors.blue },
+  black: { bg: '#000', edge: '#3A3A3C', text: '#fff' },
+  outline: { bg: '#fff', edge: colors.border, text: colors.text, border: colors.border },
 };
 
 interface Props {

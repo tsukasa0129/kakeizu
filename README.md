@@ -56,14 +56,38 @@ RevenueCat プロジェクト「家系図クエスト」は設定済みです（
 | --- | --- |
 | Entitlement | `premium`（`src/lib/purchases.ts` の `ENTITLEMENT_ID`） |
 | Offering | `default`（current）: `$rc_annual`（年額）/ `$rc_monthly`（月額） |
-| iOS アプリ | `com.tsukasa0129.kakeizu` — 商品 `com.tsukasa0129.kakeizu.premium_annual` / `...premium_monthly` |
-| Android アプリ | `com.tsukasa0129.kakeizu` — 商品 `premium:annual` / `premium:monthly`（サブスクID:基本プランID） |
+| iOS アプリ | `com.tsk.kakeizu` — 商品 `com.tsk.kakeizu.premium_annual`（¥4,800）/ `com.tsk.kakeizu.premium_monthly`（¥800）。App Store Connect 作成済み・日本のみで販売 |
+| Android アプリ | `com.tsk.kakeizu` — 商品 `premium:annual` / `premium:monthly`（サブスクID:基本プランID） |
 | Test Store | `premium_annual`（¥4,800 / $29.99）/ `premium_monthly`（¥800 / $4.99） |
 | Web Billing（Stripe） | `premium_annual_web`（¥4,800 / $29.99）/ `premium_monthly_web`（¥800 / $4.99）— Stripe アカウント `acct_1UKvYcAi6mygNgkU` に接続 |
 
 `.env.example` に公開 SDK キーが入っているので `cp .env.example .env` だけで動きます。
 開発ビルド（`__DEV__`）では `EXPO_PUBLIC_REVENUECAT_TEST_KEY` の **Test Store** が使われ、ストアのアカウントなしで購入フローを試せます。
 リリースビルドでは iOS / Android のキーが使われます。
+
+#### iOS で Stripe を並べて表示（日本のストアのみ）
+
+スマホ新法（2025年12月施行）に基づき、日本の App Store ではアプリ内課金と並べて Stripe 決済を出せます。
+条件がそろった端末でだけ、ペイウォールが次の表示に切り替わります（それ以外は従来どおりアプリ内課金のみ）。
+
+- 「 App Store で購入」（黒・先頭）と「クレジットカードで購入（Stripe）」（白）を並べる。アプリ内課金を同等以上に目立たせるのが Apple の条件
+- Stripe を押すと、Apple 指定の開示シート（`src/components/ExternalPurchaseNotice.tsx`、Apple 提供の日本語文言・アイコン）を表示
+- 「続ける」で RevenueCat の Web Purchase Link（Stripe チェックアウト）をアプリ内ブラウザで開き、閉じたら購入状態を再取得
+- iOS 26.4 以降は購入前に Apple の外部購入トークン（`IN_APP`）を取得し、RevenueCat の顧客属性 `apple_external_purchase_token` に保存
+- 判定は `modules/external-purchase`（StoreKit `ExternalPurchaseCustomLink` を呼ぶローカル Expo モジュール）の `isEligible`
+
+有効にする手順:
+
+1. Apple Developer で **StoreKit External Purchases or Offers** エンタイトルメント（日本）を申請し、承認を待つ
+2. RevenueCat ダッシュボード → Web → **Web Purchase Links** で `default` オファリングのリンクを作り、`EXPO_PUBLIC_REVENUECAT_WEB_PURCHASE_LINK` に設定（`eas.json` の `production` の `env` にも）
+3. `eas.json` の `production` の `env` に `"IOS_EXTERNAL_PURCHASE": "1"` を追加（`app.config.ts` がエンタイトルメントを付けます。承認前に付けると署名で失敗します）
+4. **Apple への月次報告の仕組みを用意する**（必須・未実装）: Stripe での購入・更新・返金・購入に至らなかったトークンを、External Purchase Server API で翌月15日までに報告。トークンは RevenueCat の顧客属性に入っています。手数料は Stripe 経由の売上の21%
+5. 開示シートの「デベロッパ名」（`ExternalPurchaseNotice.tsx` の `DEVELOPER_NAME`）を App Store の販売者名に合わせる
+
+注意:
+- App Store の商品ページに Web 購入や Stripe の案内を書いてはいけません
+- iOS 27.2 以降は Apple のシステム開示シート（`showNotice(for:)`）に切り替える必要があります
+- Stripe で購入したユーザーは匿名 ID から `kakeizu_<ID>` に切り替わります。アプリを削除すると ID が失われるため、将来ログイン機能を追加するまでは再インストール後にプレミアムを引き継げません
 
 #### Web 課金（Stripe）
 
@@ -81,7 +105,7 @@ RevenueCat プロジェクト「家系図クエスト」は設定済みです（
 
 リリース前に残っている作業（ストア側）:
 
-1. App Store Connect で上記の商品ID（自動更新サブスク、同じサブスクリプショングループ）を作成し、価格（月額¥800・年額¥4,800）を設定
+1. App Store の商品は作成済み（サブスクリプショングループ「家系図クエスト プレミアム」）。審査用スクリーンショットは仮の画像なので、ペイウォールのスクリーンショットに差し替えてから最初のアプリ審査と一緒に提出
 2. Google Play Console でサブスク `premium` に基本プラン `monthly` / `annual` を作成
 3. RevenueCat の各アプリ設定で、App Store Connect API キー / In-App Purchase キーと Google Play のサービスアカウント認証情報を登録
    （登録すると RevenueCat 側から価格や商品の作成もできるようになります）

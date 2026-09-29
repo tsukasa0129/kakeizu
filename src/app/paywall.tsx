@@ -2,15 +2,24 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { PACKAGE_TYPE, type PurchasesOffering, type PurchasesPackage } from 'react-native-purchases';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button3D } from '@/components/Button3D';
+import { ExternalPurchaseNotice } from '@/components/ExternalPurchaseNotice';
 import { Mascot } from '@/components/Mascot';
 import { notify } from '@/lib/notify';
-import { getCurrentOffering, purchase, purchasesAvailable, restore } from '@/lib/purchases';
+import {
+  getCurrentOffering,
+  purchase,
+  purchasesAvailable,
+  purchaseWithStripe,
+  restore,
+  stripeCheckoutAvailable,
+  type PurchaseOutcome,
+} from '@/lib/purchases';
 import { usePremium } from '@/store/premium';
 import { colors, font, radius } from '@/theme';
 
@@ -39,6 +48,14 @@ export default function Paywall() {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<PurchasesPackage | null>(null);
   const [busy, setBusy] = useState(false);
+  // iOS (Japan): Stripe is offered next to In-App Purchase once Apple grants the entitlement.
+  const [stripeOffered, setStripeOffered] = useState(false);
+  const [noticeVisible, setNoticeVisible] = useState(false);
+  const stripeAccepted = useRef(false);
+
+  useEffect(() => {
+    stripeCheckoutAvailable().then(setStripeOffered);
+  }, []);
 
   useEffect(() => {
     getCurrentOffering()
@@ -51,17 +68,32 @@ export default function Paywall() {
       .finally(() => setLoading(false));
   }, []);
 
-  const buy = async () => {
-    if (!selected) return;
-    setBusy(true);
-    const outcome = await purchase(selected);
-    setBusy(false);
+  const finish = (outcome: PurchaseOutcome) => {
     if (outcome === 'purchased') {
       notify('ようこそプレミアムへ！', 'すべての機能が使えるようになりました。');
       router.back();
     } else if (outcome === 'failed') {
       notify('購入できませんでした', '時間をおいて、もう一度お試しください。');
     }
+  };
+
+  const buy = async () => {
+    if (!selected) return;
+    setBusy(true);
+    const outcome = await purchase(selected);
+    setBusy(false);
+    finish(outcome);
+  };
+
+  // Apple's disclosure sheet must be accepted before routing to the alternative payment.
+  // Checkout opens only after the sheet finishes closing, so the in-app browser can be presented.
+  const buyWithStripe = async () => {
+    if (!stripeAccepted.current) return;
+    stripeAccepted.current = false;
+    setBusy(true);
+    const outcome = await purchaseWithStripe();
+    setBusy(false);
+    finish(outcome);
   };
 
   const onRestore = async () => {
@@ -151,16 +183,38 @@ export default function Paywall() {
           })
         )}
 
-        <Button3D
-          title={busy ? '処理中…' : 'プレミアムをはじめる'}
-          variant="premium"
-          disabled={!selected || busy || isPremium}
-          onPress={buy}
-        />
+        {stripeOffered ? (
+          // Apple requires In-App Purchase to be at least as prominent as the alternative:
+          // listed first, black, Apple-branded; Stripe gets the neutral outline style.
+          <>
+            <Button3D
+              title={busy ? '処理中…' : 'App Store で購入'}
+              variant="black"
+              icon={<Ionicons name="logo-apple" size={18} color="#fff" />}
+              disabled={!selected || busy || isPremium}
+              onPress={buy}
+            />
+            <Button3D
+              title="クレジットカードで購入（Stripe）"
+              variant="outline"
+              disabled={busy || isPremium}
+              onPress={() => setNoticeVisible(true)}
+            />
+          </>
+        ) : (
+          <Button3D
+            title={busy ? '処理中…' : 'プレミアムをはじめる'}
+            variant="premium"
+            disabled={!selected || busy || isPremium}
+            onPress={buy}
+          />
+        )}
         <Button3D title="購入を復元" variant="ghost" disabled={busy || !purchasesAvailable()} onPress={onRestore} />
 
         <Text style={[font.small, { textAlign: 'center' }]}>
-          {Platform.OS === 'web'
+          {stripeOffered
+            ? 'サブスクリプションは解約しない限り自動更新されます。App Store でのご購入はストアのアカウント設定から、クレジットカード（Stripe）でのご購入はプロフィールの「サブスクリプションを管理」から解約できます。'
+            : Platform.OS === 'web'
             ? 'お支払いは Stripe で安全に処理されます。サブスクリプションは解約しない限り自動更新され、解約はプロフィールの「サブスクリプションを管理」からいつでも行えます。'
             : 'サブスクリプションは期間終了の24時間前までに解約しない限り自動更新されます。解約はストアのアカウント設定から行えます。'}
         </Text>
@@ -173,6 +227,15 @@ export default function Paywall() {
           </Text>
         </View>
       </ScrollView>
+      <ExternalPurchaseNotice
+        visible={noticeVisible}
+        onContinue={() => {
+          stripeAccepted.current = true;
+          setNoticeVisible(false);
+        }}
+        onCancel={() => setNoticeVisible(false)}
+        onDismiss={buyWithStripe}
+      />
     </View>
   );
 }
