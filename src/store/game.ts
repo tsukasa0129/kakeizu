@@ -32,7 +32,6 @@ interface GameState {
   guideChecks: Record<string, boolean>;
   openedChests: string[];
   badges: string[];
-  scansUsed: number;
   pendingReward: Reward | null;
 
   finishOnboarding: (dailyGoal: number, targetGeneration: number) => void;
@@ -43,7 +42,6 @@ interface GameState {
   toggleGuideCheck: (key: string) => boolean;
   claimQuest: (id: string, xp: number) => void;
   openChest: (id: string, xp: number) => void;
-  consumeScan: () => void;
   unlockBadges: (ids: string[]) => string[];
   consumeReward: () => void;
   rollDay: () => void;
@@ -77,7 +75,6 @@ const initial = {
   guideChecks: {} as Record<string, boolean>,
   openedChests: [] as string[],
   badges: [] as string[],
-  scansUsed: 0,
   pendingReward: null as Reward | null,
 };
 
@@ -163,7 +160,6 @@ export const useGame = create<GameState>()(
         get().award(xp, '宝箱をあけた！');
       },
 
-      consumeScan: () => set((s) => ({ scansUsed: s.scansUsed + 1 })),
 
       unlockBadges: (ids) => {
         const fresh = ids.filter((b) => !get().badges.includes(b));

@@ -8,9 +8,8 @@ import { UNITS, type PathNode, type Unit } from '@/data/path';
 import { slotsInGeneration } from '@/lib/slots';
 import { useFamily } from '@/store/family';
 import { useGame, type Counter } from '@/store/game';
-import { usePremium } from '@/store/premium';
 
-export type NodeStatus = 'done' | 'active' | 'locked' | 'premium';
+export type NodeStatus = 'done' | 'active' | 'locked';
 
 export interface NodeState {
   node: PathNode;
@@ -25,7 +24,6 @@ interface Snapshot {
   completedLessons: string[];
   guideChecks: Record<string, boolean>;
   openedChests: string[];
-  premium: boolean;
 }
 
 function nodeDone(node: PathNode, s: Snapshot, unitNodesDone: boolean): [boolean, number] {
@@ -50,15 +48,13 @@ function nodeDone(node: PathNode, s: Snapshot, unitNodesDone: boolean): [boolean
 export function computePath(s: Snapshot): { unit: Unit; nodes: NodeState[] }[] {
   let activeAssigned = false;
   return UNITS.map((unit) => {
-    const lockedByPremium = unit.premium && !s.premium;
     const results: NodeState[] = [];
     let unitNodesDone = true;
     for (const node of unit.nodes) {
       const [done, progress] = nodeDone(node, s, unitNodesDone);
       if (node.kind !== 'chest' && !done) unitNodesDone = false;
       let status: NodeStatus;
-      if (lockedByPremium) status = 'premium';
-      else if (done) status = 'done';
+      if (done) status = 'done';
       else if (!activeAssigned && (node.kind !== 'chest' || unitNodesDone)) {
         status = 'active';
         activeAssigned = true;
@@ -75,12 +71,11 @@ export function usePathState() {
   const completedLessons = useGame((s) => s.completedLessons);
   const guideChecks = useGame((s) => s.guideChecks);
   const openedChests = useGame((s) => s.openedChests);
-  const premium = usePremium((s) => s.isPremium);
 
   return useMemo(() => {
     const filledSlots = new Set(Object.values(persons).map((p) => p.slot));
-    return computePath({ filledSlots, docCount, completedLessons, guideChecks, openedChests, premium });
-  }, [persons, docCount, completedLessons, guideChecks, openedChests, premium]);
+    return computePath({ filledSlots, docCount, completedLessons, guideChecks, openedChests });
+  }, [persons, docCount, completedLessons, guideChecks, openedChests]);
 }
 
 /** Badges whose conditions are currently satisfied. */

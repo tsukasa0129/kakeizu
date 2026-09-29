@@ -29,9 +29,8 @@ export default function LearnScreen() {
   const [selected, setSelected] = useState<{ state: NodeState; unit: Unit } | null>(null);
 
   const open = (state: NodeState) => {
-    const { node, status } = state;
+    const { node } = state;
     setSelected(null);
-    if (status === 'premium') return router.push('/paywall');
     switch (node.kind) {
       case 'slot': {
         const persons = useFamily.getState();
@@ -69,7 +68,7 @@ export default function LearnScreen() {
           const palette = unitPalette[unit.color];
           return (
             <View key={unit.id}>
-              <UnitHeader title={unit.title} subtitle={unit.subtitle} color={palette} premium={unit.premium} />
+              <UnitHeader title={unit.title} subtitle={unit.subtitle} color={palette} />
               {nodes.map((state) => {
                 const offset = OFFSETS[idx++ % OFFSETS.length];
                 return (
@@ -125,7 +124,6 @@ function NodeSheet({
   const { state, unit } = selected;
   const palette = unitPalette[unit.color];
   const locked = state.status === 'locked';
-  const premium = state.status === 'premium';
   const done = state.status === 'done';
   const chestLocked = state.node.kind === 'chest' && locked;
 
@@ -135,14 +133,14 @@ function NodeSheet({
         <Pressable style={[styles.sheet, { backgroundColor: locked ? colors.surface : palette.main }]}>
           <Text style={[styles.sheetTitle, locked && { color: colors.text }]}>{state.node.label}</Text>
           <Text style={[styles.sheetBody, locked && { color: colors.textMuted }]}>
-            {premium ? 'このユニットはプレミアムで解放されます。' : describe(state)}
+            {describe(state)}
           </Text>
           {chestLocked ? (
             <Text style={[styles.sheetBody, { color: colors.textMuted }]}>ユニットのほかのステップを終えるとあけられます。</Text>
           ) : (
             <Button3D
-              title={premium ? 'プレミアムを見る' : done ? 'もう一度ひらく' : locked ? '先に進めてみる' : 'はじめる'}
-              variant={premium ? 'premium' : 'secondary'}
+              title={done ? 'もう一度ひらく' : locked ? '先に進めてみる' : 'はじめる'}
+              variant="secondary"
               onPress={() => onStart(state)}
             />
           )}

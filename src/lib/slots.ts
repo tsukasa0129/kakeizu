@@ -2,8 +2,7 @@ import type { Gender } from '@/types/family';
 
 // Ahnentafel helpers. Slot 1 is the user; slot n's father is 2n, mother 2n + 1.
 
-export const FREE_MAX_GENERATION = 3; // you → 曾祖父母 (15 slots)
-export const PREMIUM_MAX_GENERATION = 5; // → 5代前 (63 slots)
+export const MAX_GENERATION = 5; // you → 5代前 (63 slots)
 
 export const generationOf = (slot: number) => Math.floor(Math.log2(slot));
 export const fatherSlot = (slot: number) => slot * 2;

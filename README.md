@@ -136,7 +136,7 @@ RevenueCat プロジェクト「家系図クエスト」は設定済みです（
 3. RevenueCat の各アプリ設定で、App Store Connect API キー / In-App Purchase キーと Google Play のサービスアカウント認証情報を登録
    （登録すると RevenueCat 側から価格や商品の作成もできるようになります）
 
-無料プラン: AI 読み取り3回・曾祖父母（3代前）まで。プレミアム: 読み取り無制限・5代前まで・ユニット5。
+無料プランはありません。プレミアム（サブスクリプション）で、AI 読み取り無制限・5代前までの家系図・全ユニットが使えます。
 
 ### Supabase Edge Function（AI 読み取り）
 

@@ -5,12 +5,10 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
-import { Button3D } from '@/components/Button3D';
 import { Icon } from '@/components/Icon';
 import { ProgressBar } from '@/components/ProgressBar';
 import {
-  FREE_MAX_GENERATION,
-  PREMIUM_MAX_GENERATION,
+  MAX_GENERATION,
   generationName,
   generationOf,
   relationLabel,
@@ -18,7 +16,6 @@ import {
   slotsUpTo,
 } from '@/lib/slots';
 import { displayName, useFamily } from '@/store/family';
-import { usePremium } from '@/store/premium';
 import { colors, font, radius } from '@/theme';
 import type { Person } from '@/types/family';
 
@@ -31,8 +28,7 @@ const ROW_H = 76;
 export default function TreeScreen() {
   const router = useRouter();
   const persons = useFamily((s) => s.persons);
-  const isPremium = usePremium((s) => s.isPremium);
-  const maxGen = isPremium ? PREMIUM_MAX_GENERATION : FREE_MAX_GENERATION;
+  const maxGen = MAX_GENERATION;
 
   const bySlot = useMemo(() => {
     const m = new Map<number, Person>();
@@ -116,18 +112,6 @@ export default function TreeScreen() {
           </View>
         </ScrollView>
 
-        {!isPremium && deepest >= FREE_MAX_GENERATION - 1 && (
-          <View style={styles.upsell}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <Icon name="crown" size={22} />
-              <Text style={font.h3}>もっと上の世代へ</Text>
-            </View>
-            <Text style={[font.body, { color: colors.textMuted }]}>
-              プレミアムなら高祖父母・5代前まで家系図を広げられます。AI読み取りも無制限に。
-            </Text>
-            <Button3D title="プレミアムを見る" variant="premium" onPress={() => router.push('/paywall')} />
-          </View>
-        )}
       </ScrollView>
 
       <Pressable style={styles.fab} onPress={() => router.push('/scan')} accessibilityLabel="書類をスキャン">
@@ -205,7 +189,6 @@ const styles = StyleSheet.create({
   years: { fontSize: 11, color: colors.textMuted },
   emptyLabel: { fontSize: 13, fontWeight: '800', color: colors.textMuted },
   emptyHint: { fontSize: 11, color: colors.locked },
-  upsell: { margin: 16, padding: 16, gap: 10, borderRadius: radius.md, borderWidth: 2, borderColor: colors.purple },
   fab: {
     position: 'absolute',
     right: 16,

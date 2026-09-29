@@ -33,7 +33,7 @@ export function PathNodeButton({ node, status, progress, color, offset, onPress 
   const edge = done ? colors.yellowDark : active ? color.dark : '#CECECE';
   const iconColor = done || active ? '#fff' : colors.locked;
   const icon: keyof typeof Ionicons.glyphMap =
-    status === 'premium' ? 'lock-closed' : done && node.kind !== 'chest' ? 'checkmark' : ICONS[node.kind];
+    done && node.kind !== 'chest' ? 'checkmark' : ICONS[node.kind];
 
   return (
     <Pressable
@@ -74,7 +74,7 @@ export function PathNodeButton({ node, status, progress, color, offset, onPress 
               </View>
             </View>
           </View>
-          <Text style={[styles.label, { color: status === 'locked' || status === 'premium' ? colors.locked : colors.text }]}>
+          <Text style={[styles.label, { color: status === 'locked' ? colors.locked : colors.text }]}>
             {node.label}
           </Text>
         </>

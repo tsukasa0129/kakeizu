@@ -12,8 +12,6 @@ import { ExternalPurchase } from '../../modules/external-purchase';
 
 /** Entitlement identifier configured in the RevenueCat dashboard. */
 export const ENTITLEMENT_ID = 'premium';
-/** Free users can run this many AI document scans. */
-export const FREE_SCAN_LIMIT = 3;
 
 const storeKey = Platform.select({
   ios: process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY,
