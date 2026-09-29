@@ -7,11 +7,10 @@ import { Button3D } from '@/components/Button3D';
 import { Icon, type IconName } from '@/components/Icon';
 import { ProgressBar } from '@/components/ProgressBar';
 import { notify } from '@/lib/notify';
-import { FREE_SCAN_LIMIT, getManagementURL, purchasesAvailable, restore } from '@/lib/purchases';
+import { getManagementURL } from '@/lib/purchases';
 import { isDemoMode } from '@/lib/extract';
 import { displayName, useFamily } from '@/store/family';
 import { levelForXp, useGame, xpForLevel } from '@/store/game';
-import { usePremium } from '@/store/premium';
 import { colors, font, radius } from '@/theme';
 
 const DOC_LABELS: Record<string, string> = {
@@ -27,18 +26,11 @@ export default function ProfileScreen() {
   const game = useGame();
   const persons = useFamily((s) => s.persons);
   const documents = useFamily((s) => s.documents);
-  const isPremium = usePremium((s) => s.isPremium);
   const me = Object.values(persons).find((p) => p.slot === 1);
 
   const level = levelForXp(game.xp);
   const levelStart = xpForLevel(level);
   const levelEnd = xpForLevel(level + 1);
-
-  const onRestore = async () => {
-    if (!purchasesAvailable()) return notify('購入情報', 'RevenueCat が未設定です（.env を確認してください）。');
-    const ok = await restore();
-    notify('購入の復元', ok ? 'プレミアムを復元しました。' : '復元できる購入が見つかりませんでした。');
-  };
 
   const onManage = async () => {
     const url = await getManagementURL().catch(() => null);
@@ -69,8 +61,8 @@ export default function ProfileScreen() {
           <View style={{ flex: 1 }}>
             <Text style={font.h2}>{me ? displayName(me) : 'ゲスト'}</Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              {isPremium && <Icon name="crown" size={16} />}
-              <Text style={font.small}>{isPremium ? 'プレミアム会員' : 'フリープラン'}</Text>
+              <Icon name="crown" size={16} />
+              <Text style={font.small}>プレミアム会員</Text>
             </View>
           </View>
         </View>
@@ -87,20 +79,6 @@ export default function ProfileScreen() {
           <Stat icon="tree" value={Object.keys(persons).length} label="登録人数" />
           <Stat icon="scroll" value={documents.length} label="読み取った書類" />
         </View>
-
-        {!isPremium && (
-          <View style={[styles.card, { borderColor: colors.purple }]}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <Icon name="crown" size={22} />
-              <Text style={font.h3}>プレミアムにアップグレード</Text>
-            </View>
-            <Text style={font.body}>
-              AI読み取り無制限・5代前までの家系図・高祖父母ユニット。
-              {'\n'}無料のAI読み取り：残り {Math.max(0, FREE_SCAN_LIMIT - game.scansUsed)} 回
-            </Text>
-            <Button3D title="プランを見る" variant="premium" onPress={() => router.push('/paywall')} />
-          </View>
-        )}
 
         <View style={[styles.card, { borderColor: colors.orange }]}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -136,10 +114,7 @@ export default function ProfileScreen() {
             家系図のデータはこの端末内に保存されます。書類の画像はAI読み取りのためだけにサーバーへ送信され、保存されません。
             {isDemoMode() ? '\n（現在はデモモード：画像は送信されず、サンプル結果が表示されます）' : ''}
           </Text>
-          <Button3D title="購入を復元" variant="secondary" onPress={onRestore} />
-          {isPremium && (
-            <Button3D title="サブスクリプションを管理" variant="secondary" onPress={onManage} />
-          )}
+          <Button3D title="サブスクリプションを管理" variant="secondary" onPress={onManage} />
           <Button3D title="すべてのデータを削除" variant="danger" onPress={onReset} />
         </View>
       </ScrollView>

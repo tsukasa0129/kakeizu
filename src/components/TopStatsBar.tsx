@@ -3,7 +3,6 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Icon } from '@/components/Icon';
 import { levelForXp, useGame } from '@/store/game';
-import { usePremium } from '@/store/premium';
 import { colors } from '@/theme';
 
 export function TopStatsBar() {
@@ -11,21 +10,10 @@ export function TopStatsBar() {
   const streak = useGame((s) => s.streak);
   const xp = useGame((s) => s.xp);
   const todayXp = useGame((s) => s.todayXp);
-  const isPremium = usePremium((s) => s.isPremium);
   const activeToday = todayXp > 0;
 
   return (
     <View style={styles.bar}>
-      <Pressable
-        style={styles.item}
-        onPress={() => router.push(isPremium ? '/profile' : '/paywall')}
-        accessibilityLabel="プレミアム"
-      >
-        <Icon name={isPremium ? 'crown' : 'sprout'} size={24} />
-        <Text style={[styles.value, { color: isPremium ? colors.purple : colors.green }]}>
-          {isPremium ? 'PRO' : 'FREE'}
-        </Text>
-      </Pressable>
       <Pressable style={styles.item} onPress={() => router.push('/quests')} accessibilityLabel="連続記録">
         <Icon name="flame" size={24} style={!activeToday && styles.dim} />
         <Text style={[styles.value, { color: activeToday ? colors.orange : colors.locked }]}>{streak}</Text>

@@ -11,17 +11,9 @@ import { Mascot, MascotSays } from '@/components/Mascot';
 import { ExtractError, extractKoseki, isDemoMode, type PageImage } from '@/lib/extract';
 import { applyMerge, propagate, suggestAssignment, type Assignment } from '@/lib/merge';
 import { awardProgress } from '@/lib/progress';
-import { FREE_SCAN_LIMIT } from '@/lib/purchases';
-import {
-  FREE_MAX_GENERATION,
-  PREMIUM_MAX_GENERATION,
-  generationOf,
-  relationLabel,
-  slotsUpTo,
-} from '@/lib/slots';
+import { MAX_GENERATION, generationOf, relationLabel, slotsUpTo } from '@/lib/slots';
 import { useFamily } from '@/store/family';
 import { useGame } from '@/store/game';
-import { usePremium } from '@/store/premium';
 import { colors, font, radius } from '@/theme';
 import type { ExtractionResult } from '@/types/extraction';
 
@@ -39,9 +31,6 @@ type Phase = 'pick' | 'reading' | 'review';
 
 export default function ScanScreen() {
   const router = useRouter();
-  const isPremium = usePremium((s) => s.isPremium);
-  const scansUsed = useGame((s) => s.scansUsed);
-  const remaining = Math.max(0, FREE_SCAN_LIMIT - scansUsed);
   const [phase, setPhase] = useState<Phase>('pick');
   const [pages, setPages] = useState<PageImage[]>([]);
   const [result, setResult] = useState<ExtractionResult | null>(null);
@@ -66,11 +55,9 @@ export default function ScanScreen() {
   };
 
   const read = async () => {
-    if (!isPremium && remaining <= 0) return router.push('/paywall');
     setPhase('reading');
     try {
       const r = await extractKoseki(pages);
-      if (!isDemoMode()) useGame.getState().consumeScan();
       setResult(r);
       setAssignment(suggestAssignment(r));
       setPhase('review');
@@ -87,7 +74,7 @@ export default function ScanScreen() {
         result={result}
         assignment={assignment}
         setAssignment={setAssignment}
-        maxGen={isPremium ? PREMIUM_MAX_GENERATION : FREE_MAX_GENERATION}
+        maxGen={MAX_GENERATION}
         onDone={() => router.back()}
       />
     );
@@ -144,13 +131,9 @@ export default function ScanScreen() {
 
         <Button3D title={`AIで読み取る（${pages.length}枚）`} disabled={pages.length === 0} onPress={read} />
 
-        <View style={{ flexDirection: 'row', gap: 6 }}>
-          {isPremium && <Icon name="crown" size={16} />}
-          <Text style={[font.small, { flex: 1 }]}>
-            {isPremium ? 'プレミアム：読み取り無制限' : `無料の読み取り 残り ${remaining} / ${FREE_SCAN_LIMIT} 回`}
-            {isDemoMode() ? '\n※ デモモード：実際の画像は送信されず、サンプル結果が表示されます。' : ''}
-          </Text>
-        </View>
+        {isDemoMode() && (
+          <Text style={font.small}>※ デモモード：実際の画像は送信されず、サンプル結果が表示されます。</Text>
+        )}
         <Text style={font.small}>
           画像は読み取りのためだけにサーバーへ送信され、保存されません。戸籍には家族の大切な個人情報が含まれます。取り扱いにご注意ください。
         </Text>
@@ -338,9 +321,8 @@ function Review({
               {editing === p.tempId && (
                 <View style={styles.slotGrid}>
                   <SlotChip label="配置しない" active={slot == null} onPress={() => pickSlot(p.tempId, null)} />
-                  {slotsUpTo(PREMIUM_MAX_GENERATION)
+                  {slotsUpTo(maxGen)
                     .filter((s) => s === slot || !usedSlots.has(s))
-                    .filter((s) => generationOf(s) <= Math.max(maxGen, 3))
                     .map((s) => (
                       <SlotChip key={s} label={relationLabel(s)} sub={s > 7 ? `#${s}` : undefined} active={slot === s} onPress={() => pickSlot(p.tempId, s)} />
                     ))}

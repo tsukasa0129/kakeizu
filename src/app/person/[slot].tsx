@@ -8,15 +8,13 @@ import { Button3D } from '@/components/Button3D';
 import { Icon } from '@/components/Icon';
 import { awardProgress } from '@/lib/progress';
 import {
-  FREE_MAX_GENERATION,
-  PREMIUM_MAX_GENERATION,
+  MAX_GENERATION,
   generationOf,
   pathDescription,
   relationLabel,
   xpForSlot,
 } from '@/lib/slots';
 import { useFamily } from '@/store/family';
-import { usePremium } from '@/store/premium';
 import { colors, font, radius } from '@/theme';
 import type { Gender } from '@/types/family';
 
@@ -40,28 +38,13 @@ export default function PersonEditor() {
   const router = useRouter();
   const slot = Number(useLocalSearchParams<{ slot: string }>().slot);
   const existing = useFamily((s) => Object.values(s.persons).find((p) => p.slot === slot));
-  const isPremium = usePremium((s) => s.isPremium);
-  const maxGen = isPremium ? PREMIUM_MAX_GENERATION : FREE_MAX_GENERATION;
 
   const [form, setForm] = useState<Record<FieldKey, string>>(() =>
     Object.fromEntries(FIELDS.map((f) => [f.key, (existing?.[f.key] as string | undefined) ?? ''])) as Record<FieldKey, string>,
   );
   const [gender, setGender] = useState<Gender>(existing?.gender ?? (slot === 1 ? 'unknown' : slot % 2 === 0 ? 'male' : 'female'));
 
-  if (!Number.isInteger(slot) || slot < 1) return null;
-
-  if (generationOf(slot) > maxGen) {
-    return (
-      <SafeAreaView style={[styles.container, { padding: 24, justifyContent: 'center', gap: 16 }]}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <Icon name="crown" size={28} />
-          <Text style={font.h2}>プレミアムで解放</Text>
-        </View>
-        <Text style={font.body}>{relationLabel(slot)}の世代はプレミアムプランで入力できます。</Text>
-        <Button3D title="プランを見る" variant="premium" onPress={() => router.replace('/paywall')} />
-      </SafeAreaView>
-    );
-  }
+  if (!Number.isInteger(slot) || slot < 1 || generationOf(slot) > MAX_GENERATION) return null;
 
   const save = () => {
     if (!form.familyName.trim() && !form.givenName.trim()) {

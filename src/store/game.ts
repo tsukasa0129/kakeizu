@@ -16,6 +16,8 @@ export interface Reward {
 
 interface GameState {
   onboarded: boolean;
+  /** How many generations back the user wants to reach (answered during onboarding). */
+  targetGeneration: number;
   xp: number;
   dailyGoal: number;
   streak: number;
@@ -30,10 +32,9 @@ interface GameState {
   guideChecks: Record<string, boolean>;
   openedChests: string[];
   badges: string[];
-  scansUsed: number;
   pendingReward: Reward | null;
 
-  finishOnboarding: (dailyGoal: number) => void;
+  finishOnboarding: (dailyGoal: number, targetGeneration: number) => void;
   /** Adds XP, advances the streak and queues a celebration. */
   award: (xp: number, title: string, opts?: { counter?: Counter; badges?: string[]; celebrate?: boolean }) => void;
   bump: (counter: Counter) => void;
@@ -41,7 +42,6 @@ interface GameState {
   toggleGuideCheck: (key: string) => boolean;
   claimQuest: (id: string, xp: number) => void;
   openChest: (id: string, xp: number) => void;
-  consumeScan: () => void;
   unlockBadges: (ids: string[]) => string[];
   consumeReward: () => void;
   rollDay: () => void;
@@ -60,6 +60,7 @@ const emptyCounters = (): Record<Counter, number> => ({
 
 const initial = {
   onboarded: false,
+  targetGeneration: 4,
   xp: 0,
   dailyGoal: 30,
   streak: 0,
@@ -74,7 +75,6 @@ const initial = {
   guideChecks: {} as Record<string, boolean>,
   openedChests: [] as string[],
   badges: [] as string[],
-  scansUsed: 0,
   pendingReward: null as Reward | null,
 };
 
@@ -83,7 +83,7 @@ export const useGame = create<GameState>()(
     (set, get) => ({
       ...initial,
 
-      finishOnboarding: (dailyGoal) => set({ onboarded: true, dailyGoal }),
+      finishOnboarding: (dailyGoal, targetGeneration) => set({ onboarded: true, dailyGoal, targetGeneration }),
 
       rollDay: () => {
         const today = dayKey();
@@ -160,7 +160,6 @@ export const useGame = create<GameState>()(
         get().award(xp, '宝箱をあけた！');
       },
 
-      consumeScan: () => set((s) => ({ scansUsed: s.scansUsed + 1 })),
 
       unlockBadges: (ids) => {
         const fresh = ids.filter((b) => !get().badges.includes(b));

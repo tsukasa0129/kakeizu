@@ -12,7 +12,6 @@ export interface Unit {
   title: string;
   subtitle: string;
   color: UnitColor;
-  premium?: boolean;
   nodes: PathNode[];
 }
 
@@ -80,7 +79,6 @@ export const UNITS: Unit[] = [
     title: 'ユニット5',
     subtitle: '高祖父母、さらにその先へ',
     color: 'red',
-    premium: true,
     nodes: [
       { id: 'u5-g1', kind: 'guide', guideId: 'trace', label: '古い戸籍を集める' },
       { id: 'u5-p', kind: 'slot', slots: range(16, 23), label: '父方の高祖父母' },
