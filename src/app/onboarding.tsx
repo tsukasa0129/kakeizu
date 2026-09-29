@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button3D } from '@/components/Button3D';
 import { Icon, type IconName } from '@/components/Icon';
 import { Mascot, MascotSays } from '@/components/Mascot';
+import { HOOK_COUNT, HookDots, OnboardingHook } from '@/components/OnboardingHooks';
 import { ProgressBar } from '@/components/ProgressBar';
 import { notify } from '@/lib/notify';
 import { awardProgress } from '@/lib/progress';
@@ -25,7 +26,7 @@ import { useGame } from '@/store/game';
 import { colors, font, radius } from '@/theme';
 
 // Flow modelled on the top-grossing hard-paywall apps studied in Appllama (Cal AI et al.):
-// short personal questions → insight → "with us vs. on your own" → plan calculation →
+// welcome → intro pages that make you want to start → short personal questions → insight → "with us vs. on your own" → plan calculation →
 // "your plan is ready" → paywall. Each answer is reused on the plan and paywall screens.
 
 const MOTIVES = ['ルーツを知りたい', '子どもに残したい', '相続の準備', 'お墓・法事のため', 'なんとなく興味'];
@@ -73,6 +74,8 @@ const ancestorsUpTo = (gen: number) => 2 ** (gen + 1) - 2;
 
 export default function Onboarding() {
   const [step, setStep] = useState(0);
+  /** Intro page shown after the welcome screen; null while the welcome screen is up. */
+  const [hook, setHook] = useState<number | null>(null);
   const [motive, setMotive] = useState<string | null>(null);
   const [target, setTarget] = useState<number | null>(null);
   const [knowledge, setKnowledge] = useState<(typeof KNOWLEDGE)[number]['id'] | null>(null);
@@ -106,6 +109,27 @@ export default function Onboarding() {
     else notify('購入の復元', '復元できる購入が見つかりませんでした。');
   };
 
+  if (step === 0 && hook !== null) {
+    const last = hook === HOOK_COUNT - 1;
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <Pressable onPress={() => setHook(hook === 0 ? null : hook - 1)} hitSlop={12} accessibilityLabel="戻る">
+            <Text style={styles.back}>‹</Text>
+          </Pressable>
+        </View>
+        <OnboardingHook index={hook} />
+        <View style={styles.bottom}>
+          <HookDots index={hook} />
+          <Button3D
+            title={last ? 'わたしの家系図をつくる' : 'つぎへ'}
+            onPress={() => (last ? setStep(1) : setHook(hook + 1))}
+          />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   if (step === 0) {
     return (
       <SafeAreaView style={styles.center}>
@@ -115,7 +139,7 @@ export default function Onboarding() {
           役所の戸籍をAIで読み取って、{'\n'}ゲーム感覚で家系図を完成させよう。
         </Text>
         <View style={styles.bottom}>
-          <Button3D title="はじめる" onPress={() => setStep(1)} />
+          <Button3D title="はじめる" onPress={() => setHook(0)} />
           <Text style={styles.restore} onPress={restoring ? undefined : onRestore}>
             {restoring ? '確認中…' : 'すでに購入済みの方はこちら'}
           </Text>
@@ -274,6 +298,12 @@ export default function Onboarding() {
                 <PlanCard icon="tree" title="見つけるご先祖さま" value={`最大 ${ancestorsUpTo(targetGen)}人`} />
                 <PlanCard icon="rocket" title="最初の一歩" value={FIRST_STEP[experience ?? 'unknown']} />
                 <PlanCard icon="flame" title="1日の目標" value={goalLabel} />
+              </View>
+              <View style={styles.bookBanner}>
+                <Icon name="books" size={28} />
+                <Text style={[font.small, { flex: 1, color: colors.text, fontWeight: '700' }]}>
+                  埋まった家系図は、ハードカバーの本にして{motive === '子どもに残したい' ? 'お子さんに' : '家族に'}残せます。
+                </Text>
               </View>
               <Text style={[font.small, styles.centerText]}>目標はあとからいつでも変えられます。</Text>
             </View>
@@ -537,4 +567,12 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   planValue: { fontSize: 15, fontWeight: '800', color: colors.text },
+  bookBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    padding: 12,
+    borderRadius: radius.md,
+    backgroundColor: '#FFF3D6',
+  },
 });
