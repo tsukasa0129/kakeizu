@@ -4,6 +4,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button3D } from '@/components/Button3D';
+import { ExampleBox, TermList } from '@/components/Explainers';
 import { Icon } from '@/components/Icon';
 import { ProgressBar } from '@/components/ProgressBar';
 import { guideById, guideCheckKey, isGuideComplete } from '@/data/guides';
@@ -46,6 +47,7 @@ export default function GuideDetail() {
         <Icon name={guide.icon} size={52} />
         <Text style={font.h1}>{guide.title}</Text>
         <Text style={[font.body, { color: colors.textMuted }]}>{guide.subtitle}</Text>
+        {guide.intro && <Text style={[font.body, { fontSize: 16, lineHeight: 25 }]}>{guide.intro}</Text>}
 
         {guide.steps.map((step, i) => {
           const checked = !!checks[guideCheckKey(guide.id, step.id)];
@@ -72,6 +74,8 @@ export default function GuideDetail() {
                   ))}
                 </View>
               )}
+              <ExampleBox text={step.example} label="ポイント" />
+              <TermList terms={step.terms} />
               <Button3D
                 title={checked ? 'できた！' : 'このステップを完了'}
                 variant={checked ? 'secondary' : 'blue'}

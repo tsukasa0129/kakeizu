@@ -1,3 +1,4 @@
+import type { Term } from '@/components/Explainers';
 import type { IconName } from '@/components/Icon';
 
 export interface LessonCard {
@@ -7,7 +8,7 @@ export interface LessonCard {
   /** 具体例やたとえ話。カードの下に「たとえば」として表示する。 */
   example?: string;
   /** カードに出てくるむずかしい単語の解説。 */
-  terms?: { word: string; meaning: string }[];
+  terms?: Term[];
 }
 
 export interface QuizQuestion {
