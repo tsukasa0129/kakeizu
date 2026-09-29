@@ -9,6 +9,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button3D } from '@/components/Button3D';
 import { ExternalPurchaseNotice } from '@/components/ExternalPurchaseNotice';
+import { Icon } from '@/components/Icon';
 import { Mascot } from '@/components/Mascot';
 import { notify } from '@/lib/notify';
 import {
@@ -126,7 +127,10 @@ export default function Paywall() {
       <ScrollView contentContainerStyle={{ padding: 20, gap: 14, paddingBottom: 40 }}>
         {isPremium && (
           <View style={styles.activeBox}>
-            <Text style={font.h3}>👑 プレミアム利用中です</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Icon name="crown" size={22} />
+              <Text style={font.h3}>プレミアム利用中です</Text>
+            </View>
           </View>
         )}
 

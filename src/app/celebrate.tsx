@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
 
 import { Button3D } from '@/components/Button3D';
+import { Icon } from '@/components/Icon';
 import { Mascot } from '@/components/Mascot';
 import { badgeById } from '@/data/badges';
 import { levelForXp, useGame } from '@/store/game';
@@ -36,23 +37,32 @@ export default function Celebrate() {
         <View style={styles.statsRow}>
           <View style={[styles.stat, { borderColor: colors.yellow }]}>
             <Text style={[styles.statHead, { backgroundColor: colors.yellow }]}>獲得XP</Text>
-            <Text style={[styles.statValue, { color: colors.yellowDark }]}>⚡ {reward.xp}</Text>
+            <View style={styles.statBody}>
+              <Icon name="bolt" size={24} />
+              <Text style={[styles.statValue, { color: colors.yellowDark }]}>{reward.xp}</Text>
+            </View>
           </View>
           <View style={[styles.stat, { borderColor: colors.orange }]}>
             <Text style={[styles.statHead, { backgroundColor: colors.orange }]}>連続記録</Text>
-            <Text style={[styles.statValue, { color: colors.orange }]}>🔥 {reward.streak}</Text>
+            <View style={styles.statBody}>
+              <Icon name="flame" size={24} />
+              <Text style={[styles.statValue, { color: colors.orange }]}>{reward.streak}</Text>
+            </View>
           </View>
         </View>
 
         {reward.leveledUp && (
-          <Text style={[font.h3, { color: colors.blue }]}>🎉 レベル {levelForXp(xp)} にアップ！</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Icon name="party" size={24} />
+            <Text style={[font.h3, { color: colors.blue }]}>レベル {levelForXp(xp)} にアップ！</Text>
+          </View>
         )}
 
         {reward.badges.map((id) => {
           const b = badgeById(id);
           return b ? (
             <View key={id} style={styles.badge}>
-              <Text style={{ fontSize: 30 }}>{b.emoji}</Text>
+              <Icon name={b.icon} size={36} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.badgeKicker}>新しいバッジ</Text>
                 <Text style={font.h3}>{b.title}</Text>
@@ -73,7 +83,8 @@ const styles = StyleSheet.create({
   statsRow: { flexDirection: 'row', gap: 12, alignSelf: 'stretch' },
   stat: { flex: 1, borderWidth: 2, borderRadius: radius.md, overflow: 'hidden', alignItems: 'center' },
   statHead: { alignSelf: 'stretch', textAlign: 'center', color: '#fff', fontWeight: '800', paddingVertical: 4, fontSize: 12 },
-  statValue: { fontSize: 22, fontWeight: '900', paddingVertical: 10 },
+  statBody: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 10 },
+  statValue: { fontSize: 22, fontWeight: '900' },
   badge: {
     flexDirection: 'row',
     alignItems: 'center',

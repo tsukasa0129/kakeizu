@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 
+import type { IconName } from '@/components/Icon';
 import { BADGES } from '@/data/badges';
 import { GUIDES, guideById, isGuideComplete } from '@/data/guides';
 import { LESSONS } from '@/data/lessons';
@@ -122,14 +123,14 @@ export function awardProgress(xp: number, title: string, counter?: Counter, cele
 export interface Quest {
   id: string;
   title: string;
-  emoji: string;
+  icon: IconName;
   target: (s: ReturnType<typeof useGame.getState>) => number;
   xp: number;
   current: (s: ReturnType<typeof useGame.getState>) => number;
 }
 
 export const DAILY_QUESTS: Quest[] = [
-  { id: 'xp', title: 'デイリー目標のXPを獲得', emoji: '⚡', target: (s) => s.dailyGoal, xp: 10, current: (s) => s.todayXp },
-  { id: 'person', title: '家系図の空欄を1つ埋める', emoji: '🌳', target: () => 1, xp: 15, current: (s) => s.todayCounters.personsFilled },
-  { id: 'lesson', title: 'レッスンかガイドを2つ進める', emoji: '📚', target: () => 2, xp: 10, current: (s) => s.todayCounters.lessons + s.todayCounters.guideSteps },
+  { id: 'xp', title: 'デイリー目標のXPを獲得', icon: 'bolt', target: (s) => s.dailyGoal, xp: 10, current: (s) => s.todayXp },
+  { id: 'person', title: '家系図の空欄を1つ埋める', icon: 'tree', target: () => 1, xp: 15, current: (s) => s.todayCounters.personsFilled },
+  { id: 'lesson', title: 'レッスンかガイドを2つ進める', icon: 'books', target: () => 2, xp: 10, current: (s) => s.todayCounters.lessons + s.todayCounters.guideSteps },
 ];

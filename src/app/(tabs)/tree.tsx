@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import { Button3D } from '@/components/Button3D';
+import { Icon } from '@/components/Icon';
 import { ProgressBar } from '@/components/ProgressBar';
 import {
   FREE_MAX_GENERATION,
@@ -117,7 +118,10 @@ export default function TreeScreen() {
 
         {!isPremium && deepest >= FREE_MAX_GENERATION - 1 && (
           <View style={styles.upsell}>
-            <Text style={font.h3}>👑 もっと上の世代へ</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Icon name="crown" size={22} />
+              <Text style={font.h3}>もっと上の世代へ</Text>
+            </View>
             <Text style={[font.body, { color: colors.textMuted }]}>
               プレミアムなら高祖父母・5代前まで家系図を広げられます。AI読み取りも無制限に。
             </Text>
@@ -168,7 +172,7 @@ function PersonBox({
         </Text>
         {!!years && <Text style={styles.years}>{years}</Text>}
       </View>
-      {person.sourceDocIds.length > 0 && <Text style={{ fontSize: 12 }}>📜</Text>}
+      {person.sourceDocIds.length > 0 && <Icon name="scroll" size={14} />}
     </Pressable>
   );
 }

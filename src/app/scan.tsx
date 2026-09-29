@@ -6,6 +6,7 @@ import { Alert, Animated, Easing, Image, Pressable, ScrollView, StyleSheet, Text
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button3D } from '@/components/Button3D';
+import { Icon } from '@/components/Icon';
 import { Mascot, MascotSays } from '@/components/Mascot';
 import { ExtractError, extractKoseki, isDemoMode, type PageImage } from '@/lib/extract';
 import { applyMerge, propagate, suggestAssignment, type Assignment } from '@/lib/merge';
@@ -143,12 +144,13 @@ export default function ScanScreen() {
 
         <Button3D title={`AIで読み取る（${pages.length}枚）`} disabled={pages.length === 0} onPress={read} />
 
-        <Text style={font.small}>
-          {isPremium
-            ? '👑 プレミアム：読み取り無制限'
-            : `無料の読み取り 残り ${remaining} / ${FREE_SCAN_LIMIT} 回`}
-          {isDemoMode() ? '\n※ デモモード：実際の画像は送信されず、サンプル結果が表示されます。' : ''}
-        </Text>
+        <View style={{ flexDirection: 'row', gap: 6 }}>
+          {isPremium && <Icon name="crown" size={16} />}
+          <Text style={[font.small, { flex: 1 }]}>
+            {isPremium ? 'プレミアム：読み取り無制限' : `無料の読み取り 残り ${remaining} / ${FREE_SCAN_LIMIT} 回`}
+            {isDemoMode() ? '\n※ デモモード：実際の画像は送信されず、サンプル結果が表示されます。' : ''}
+          </Text>
+        </View>
         <Text style={font.small}>
           画像は読み取りのためだけにサーバーへ送信され、保存されません。戸籍には家族の大切な個人情報が含まれます。取り扱いにご注意ください。
         </Text>
@@ -267,7 +269,7 @@ function Review({
       <Header title="読み取り結果の確認" onClose={onDone} />
       <ScrollView contentContainerStyle={{ padding: 20, gap: 14, paddingBottom: 40 }}>
         <View style={styles.docCard}>
-          <Text style={{ fontSize: 30 }}>📜</Text>
+          <Icon name="scroll" size={36} />
           <View style={{ flex: 1, gap: 2 }}>
             <Text style={font.h3}>{DOC_TYPE_LABEL[result.documentType]}</Text>
             {result.honseki && <Text style={font.small}>本籍：{result.honseki}</Text>}
@@ -299,10 +301,17 @@ function Review({
             <View key={p.tempId} style={[styles.personCard, slot != null && !tooDeep && { borderColor: colors.green }]}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                 <View style={{ flex: 1 }}>
-                  <Text style={font.h3}>
-                    {p.familyName} {p.givenName}
-                    {p.isRemoved ? '  ✖︎除籍' : ''}
-                  </Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <Text style={font.h3}>
+                      {p.familyName} {p.givenName}
+                    </Text>
+                    {p.isRemoved && (
+                      <View style={styles.removedTag}>
+                        <Icon name="cross" size={10} color={colors.redDark} />
+                        <Text style={styles.removedTagText}>除籍</Text>
+                      </View>
+                    )}
+                  </View>
                   <Text style={font.small}>
                     {[p.relationInRegister, p.birthDateText && `${p.birthDateText}生`, p.deathDateText && `${p.deathDateText}没`]
                       .filter(Boolean)
@@ -318,8 +327,9 @@ function Review({
                   style={[styles.slotPill, slot != null && { backgroundColor: tooDeep ? colors.purple : colors.green }]}
                   onPress={() => setEditing(editing === p.tempId ? null : p.tempId)}
                 >
+                  {tooDeep && <Icon name="crown" size={14} />}
                   <Text style={[styles.slotPillText, slot != null && { color: '#fff' }]}>
-                    {slot == null ? '配置しない' : tooDeep ? '👑 ' + relationLabel(slot) : relationLabel(slot)}
+                    {slot == null ? '配置しない' : relationLabel(slot)}
                   </Text>
                   <Ionicons name="chevron-down" size={14} color={slot != null ? '#fff' : colors.textMuted} />
                 </Pressable>
@@ -342,7 +352,10 @@ function Review({
 
         {result.previousRegisters.length > 0 && (
           <View style={styles.leadBox}>
-            <Text style={font.h3}>🧭 次に請求できる戸籍</Text>
+            <View style={styles.iconTitle}>
+              <Icon name="compass" size={22} />
+              <Text style={font.h3}>次に請求できる戸籍</Text>
+            </View>
             {result.previousRegisters.map((r) => (
               <Text key={r.honseki + r.hittousha} style={font.body}>
                 ・{r.honseki}
@@ -401,5 +414,16 @@ const styles = StyleSheet.create({
   slotGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   slotChip: { borderWidth: 2, borderColor: colors.border, borderRadius: radius.sm, paddingHorizontal: 10, paddingVertical: 6, alignItems: 'center' },
   slotChipText: { fontWeight: '700', fontSize: 12, color: colors.text },
+  removedTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: colors.redLight,
+    borderRadius: radius.pill,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  removedTagText: { fontSize: 11, fontWeight: '800', color: colors.redDark },
+  iconTitle: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   leadBox: { gap: 6, padding: 16, borderRadius: radius.md, borderWidth: 2, borderColor: colors.blue, backgroundColor: colors.blueLight },
 });

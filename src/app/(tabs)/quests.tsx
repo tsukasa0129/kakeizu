@@ -2,6 +2,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button3D } from '@/components/Button3D';
+import { Icon } from '@/components/Icon';
 import { Mascot } from '@/components/Mascot';
 import { ProgressBar } from '@/components/ProgressBar';
 import { BADGES } from '@/data/badges';
@@ -30,7 +31,7 @@ export default function QuestsScreen() {
             <Text style={styles.streakLabel}>日連続で学習中！</Text>
             <Text style={styles.streakSub}>最長記録 {game.longestStreak}日</Text>
           </View>
-          <Text style={{ fontSize: 72 }}>🔥</Text>
+          <Icon name="flame" size={84} />
         </View>
 
         <View style={styles.card}>
@@ -41,7 +42,7 @@ export default function QuestsScreen() {
                 <View key={d.key} style={{ alignItems: 'center', gap: 6 }}>
                   <Text style={font.small}>{d.label}</Text>
                   <View style={[styles.dayDot, active && { backgroundColor: colors.orange, borderColor: colors.orangeDark }]}>
-                    {active && <Text style={{ color: '#fff', fontWeight: '800' }}>✓</Text>}
+                    {active && <Icon name="check" size={18} color="#fff" />}
                   </View>
                 </View>
               );
@@ -66,7 +67,7 @@ export default function QuestsScreen() {
             return (
               <View key={q.id} style={{ gap: 8 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                  <Text style={{ fontSize: 26 }}>{q.emoji}</Text>
+                  <Icon name={q.icon} size={30} />
                   <Text style={[font.h3, { flex: 1 }]}>{q.title}</Text>
                   <Text style={styles.reward}>+{q.xp}XP</Text>
                 </View>
@@ -78,8 +79,13 @@ export default function QuestsScreen() {
                     {cur}/{target}
                   </Text>
                 </View>
-                {ready && <Button3D title="報酬を受け取る 🎁" onPress={() => game.claimQuest(q.id, q.xp)} />}
-                {claimed && <Text style={[font.small, { color: colors.greenDark, fontWeight: '700' }]}>受け取り済み ✓</Text>}
+                {ready && <Button3D title="報酬を受け取る" icon={<Icon name="gift" size={22} />} onPress={() => game.claimQuest(q.id, q.xp)} />}
+                {claimed && (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                    <Text style={[font.small, { color: colors.greenDark, fontWeight: '700' }]}>受け取り済み</Text>
+                    <Icon name="check" size={14} color={colors.greenDark} />
+                  </View>
+                )}
               </View>
             );
           })}
@@ -92,7 +98,7 @@ export default function QuestsScreen() {
             return (
               <View key={b.id} style={[styles.badge, !earned && { opacity: 0.4 }]}>
                 <View style={[styles.badgeIcon, earned && { borderColor: colors.yellow, backgroundColor: '#FFF7D6' }]}>
-                  <Text style={{ fontSize: 30 }}>{earned ? b.emoji : '🔒'}</Text>
+                  <Icon name={earned ? b.icon : 'lock'} size={36} />
                 </View>
                 <Text style={styles.badgeTitle} numberOfLines={1}>
                   {b.title}

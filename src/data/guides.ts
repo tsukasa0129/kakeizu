@@ -1,3 +1,5 @@
+import type { IconName } from '@/components/Icon';
+
 export interface GuideStep {
   id: string;
   title: string;
@@ -9,7 +11,7 @@ export interface Guide {
   id: string;
   title: string;
   subtitle: string;
-  emoji: string;
+  icon: IconName;
   color: 'green' | 'blue' | 'purple' | 'orange';
   /** Rough time/cost hints shown as chips. */
   chips: string[];
@@ -22,7 +24,7 @@ export const GUIDES: Guide[] = [
     id: 'find-honseki',
     title: '本籍地を調べる',
     subtitle: 'すべての出発点。住民票でわかります',
-    emoji: '📍',
+    icon: 'pin',
     color: 'green',
     chips: ['所要10分', '300円前後'],
     steps: [
@@ -48,7 +50,7 @@ export const GUIDES: Guide[] = [
     id: 'koiki',
     title: '広域交付でまとめて取る',
     subtitle: '最寄りの役所で、親・祖父母の戸籍まで一括',
-    emoji: '🚀',
+    icon: 'rocket',
     color: 'blue',
     chips: ['いちばん効率的', '本人が窓口へ'],
     steps: [
@@ -89,7 +91,7 @@ export const GUIDES: Guide[] = [
     id: 'convenience',
     title: 'コンビニで取る',
     subtitle: 'マイナンバーカードで、自分の現在の戸籍を',
-    emoji: '🏪',
+    icon: 'shop',
     color: 'purple',
     chips: ['早朝・夜も可', '現在の戸籍のみ'],
     steps: [
@@ -115,7 +117,7 @@ export const GUIDES: Guide[] = [
     id: 'mail',
     title: '郵送で請求する',
     subtitle: '遠方の本籍地や、代理で集めたいときに',
-    emoji: '✉️',
+    icon: 'envelope',
     color: 'orange',
     chips: ['1〜2週間', '定額小為替'],
     steps: [
@@ -152,7 +154,7 @@ export const GUIDES: Guide[] = [
     id: 'trace',
     title: 'さかのぼって古い戸籍を集める',
     subtitle: '明治までたどる、家系図づくりの本番',
-    emoji: '🔎',
+    icon: 'search',
     color: 'blue',
     chips: ['上級', '数週間〜'],
     steps: [

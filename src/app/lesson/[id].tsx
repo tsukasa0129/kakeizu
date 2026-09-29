@@ -6,6 +6,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button3D } from '@/components/Button3D';
+import { Icon } from '@/components/Icon';
 import { Mascot } from '@/components/Mascot';
 import { ProgressBar } from '@/components/ProgressBar';
 import { lessonById } from '@/data/lessons';
@@ -66,11 +67,12 @@ export default function LessonScreen() {
 
       {!inQuiz && card && (
         <View style={styles.body}>
-          <Text style={styles.kicker}>
-            {lesson.emoji} {lesson.title}
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Icon name={lesson.icon} size={18} />
+            <Text style={styles.kicker}>{lesson.title}</Text>
+          </View>
           <View style={styles.card}>
-            <Text style={{ fontSize: 56 }}>{card.emoji}</Text>
+            <Icon name={card.icon} size={64} />
             <Text style={font.h2}>{card.title}</Text>
             <Text style={[font.body, { fontSize: 17, lineHeight: 27 }]}>{card.body}</Text>
           </View>
