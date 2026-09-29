@@ -3,6 +3,7 @@ import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput,
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button3D } from '@/components/Button3D';
+import { ChoiceOption } from '@/components/ChoiceOption';
 import { Mascot, MascotSays } from '@/components/Mascot';
 import { ProgressBar } from '@/components/ProgressBar';
 import { awardProgress } from '@/lib/progress';
@@ -72,7 +73,7 @@ export default function Onboarding() {
               <MascotSays text="家系図をつくろうと思ったきっかけは？" />
               <View style={styles.options}>
                 {MOTIVES.map((m) => (
-                  <Option key={m} label={m} selected={motive === m} onPress={() => setMotive(m)} />
+                  <ChoiceOption key={m} label={m} selected={motive === m} onPress={() => setMotive(m)} />
                 ))}
               </View>
             </>
@@ -83,7 +84,7 @@ export default function Onboarding() {
               <MascotSays text="1日の目標を決めよう！毎日つづけると連続記録🔥がのびるよ。" />
               <View style={styles.options}>
                 {GOALS.map((g) => (
-                  <Option
+                  <ChoiceOption
                     key={g.xp}
                     label={`${g.label}  ${g.sub}`}
                     trailing={`${g.xp} XP`}
@@ -147,31 +148,6 @@ export default function Onboarding() {
   );
 }
 
-function Option({
-  label,
-  trailing,
-  selected,
-  onPress,
-}: {
-  label: string;
-  trailing?: string;
-  selected: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      style={[
-        styles.option,
-        selected && { borderColor: colors.blue, backgroundColor: colors.blueLight },
-      ]}
-    >
-      <Text style={[styles.optionText, selected && { color: colors.blueDark }]}>{label}</Text>
-      {trailing && <Text style={[styles.optionTrailing, selected && { color: colors.blueDark }]}>{trailing}</Text>}
-    </Pressable>
-  );
-}
-
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 14, backgroundColor: colors.bg },
@@ -180,17 +156,6 @@ const styles = StyleSheet.create({
   back: { fontSize: 34, color: colors.locked, fontWeight: '300' },
   body: { flex: 1, padding: 20, gap: 20 },
   options: { gap: 10 },
-  option: {
-    borderWidth: 2,
-    borderColor: colors.border,
-    borderBottomWidth: 4,
-    borderRadius: radius.md,
-    padding: 16,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  optionText: { fontSize: 16, fontWeight: '700', color: colors.text },
-  optionTrailing: { fontSize: 15, fontWeight: '700', color: colors.textMuted },
   nameRow: { flexDirection: 'row', gap: 10 },
   input: {
     flex: 1,

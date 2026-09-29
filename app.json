@@ -3,7 +3,11 @@
     "name": "家系図クエスト",
     "slug": "kakeizu",
     "owner": "tsk-tsk",
-    "scheme": "kakeizu",
+    "scheme": [
+      "kakeizu",
+      "rc-9ac62803d4",
+      "rc-31592afba5"
+    ],
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",

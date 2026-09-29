@@ -76,6 +76,27 @@ RevenueCat プロジェクト「家系図クエスト」は設定済みです（
 - 解約・支払い方法の変更は、プロフィールの「サブスクリプションを管理」（RevenueCat のカスタマーポータル）から行えます
 - Web のユーザー ID はブラウザの localStorage に保存される匿名 ID です。別のブラウザ・端末で購入を引き継ぐには、ログイン機能を追加して `Purchases.logIn(userId)` を呼んでください
 
+#### Web2App ファネル（`/start`）
+
+広告・SNS から Web に来た人を、Web で Stripe 決済 → アプリで引き継ぎ、の流れでプレミアムにします（App Store / Google Play の手数料がかからない）。
+
+1. `/start`（`src/app/start/index.tsx`）: 3問の診断クイズ → 「◯人のご先祖さま」の診断結果 → プラン選択 → Stripe チェックアウト
+   - RevenueCat の Offering **`web_funnel`**（`$rc_annual` / `$rc_monthly` の Web 商品）を表示します。アプリ内の `default` とは別なので、ファネルだけ価格や A/B テストを変えられます
+   - クイズの回答と `utm_source` などの UTM パラメータは RevenueCat の顧客属性（`funnel_*` / `utm_*`）に保存されます
+2. `/start/success`: 購入後、RevenueCat の **Redemption Link** を表示。「アプリでひらく」を押すとアプリが起動します
+3. アプリ側: `src/app/+native-intent.tsx` が `…://redeem_web_purchase?redemption_link=…` を受け取り、`src/app/redeem.tsx` で
+   `Purchases.redeemWebPurchase` を実行 → entitlement `premium` がアプリのユーザーに付与されます（オンボーディング前でも可）
+
+広告のリンク先は `https://<Web のホスト>/start?utm_source=instagram&utm_campaign=...` のようにします。
+Web 版は `npx expo export --platform web` で `dist/` に書き出し、Vercel などの静的ホスティングに置けます。
+
+**ダッシュボードでの設定が必要（API からは設定できません）:**
+
+- RevenueCat → Web Billing アプリ（家系図クエスト (Web)）の設定で **Redemption Links を有効化**。無効のままだと購入後にリンクが発行されません
+- Redemption Link が使う URL スキームが `app.json` の `scheme`（`kakeizu` / `rc-9ac62803d4` / `rc-31592afba5`）に含まれているか確認。違う場合は追加して、ネイティブを再ビルドします
+- ストア公開後、`.env` に `EXPO_PUBLIC_APP_STORE_URL` / `EXPO_PUBLIC_PLAY_STORE_URL` を設定すると、購入完了ページにダウンロードボタンが出ます
+- Redemption Link の受け取りはネイティブの変更（URL スキーム）を含むので、新しい開発ビルド / ストアビルドが必要です
+
 本番公開前: RevenueCat の Web Billing アプリ設定で Stripe を本番モードに接続し、本番用の `rcb_` 公開キーに差し替えてください。
 サポート用メールアドレス（領収書に記載）もアプリ設定で登録してください。
 

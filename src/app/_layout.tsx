@@ -57,6 +57,11 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <StatusBar style="dark" />
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
+        {/* Web2app: the web funnel is for visitors who have never opened the app, and Redemption Links can
+            arrive before onboarding, so neither sits behind the onboarding guard. */}
+        <Stack.Screen name="start/index" />
+        <Stack.Screen name="start/success" />
+        <Stack.Screen name="redeem" options={{ gestureEnabled: false }} />
         <Stack.Protected guard={!onboarded}>
           <Stack.Screen name="onboarding" />
         </Stack.Protected>
