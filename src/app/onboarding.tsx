@@ -32,7 +32,7 @@ import { colors, font, radius } from '@/theme';
 // Flow modelled on the top-grossing hard-paywall apps studied in Appllama (Cal AI et al.):
 // welcome → intro pages that make you want to start → short personal questions → insight →
 // "with us vs. on your own" → plan calculation → "your plan is ready" → paywall.
-// Every step animates in, and the samurai mascot bobs along, to keep the long flow playful. Each answer is reused on the plan and paywall screens.
+// Every step animates in, and the tanuki mascot bobs along, to keep the long flow playful. Each answer is reused on the plan and paywall screens.
 
 const MOTIVES = ['ルーツを知りたい', '子どもに残したい', '相続の準備', 'お墓・法事のため', 'なんとなく興味'];
 
@@ -142,7 +142,7 @@ export default function Onboarding() {
       <SafeAreaView style={styles.center}>
         <PopIn delay={500}>
           <View style={styles.greeting}>
-            <Text style={styles.greetingText}>ご先祖さま探し、お供いたす！</Text>
+            <Text style={styles.greetingText}>まめただよ！いっしょにご先祖さまを探そう</Text>
           </View>
         </PopIn>
         <PopIn>
