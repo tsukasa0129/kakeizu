@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Animated, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { PACKAGE_TYPE, type PurchasesOffering, type PurchasesPackage } from 'react-native-purchases';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -9,6 +9,7 @@ import { Button3D } from '@/components/Button3D';
 import { ExternalPurchaseNotice } from '@/components/ExternalPurchaseNotice';
 import { Icon, type IconName } from '@/components/Icon';
 import { Mascot } from '@/components/Mascot';
+import { PopIn, useLoop } from '@/components/Motion';
 import { notify } from '@/lib/notify';
 import {
   getCurrentOffering,
@@ -177,7 +178,7 @@ export default function Paywall() {
   if (!offering) {
     return (
       <SafeAreaView style={[styles.container, styles.centered, { padding: 24, gap: 16 }]}>
-        <Mascot size={120} mood="think" />
+        <Mascot size={120} mood="think" animate />
         <Text style={[font.body, { textAlign: 'center' }]}>
           {purchasesAvailable()
             ? 'プランを読み込めませんでした。通信状況を確認して、アプリを開き直してください。'
@@ -206,7 +207,7 @@ export default function Paywall() {
             {'\n'}無料で体験しよう
           </Text>
           <View style={styles.previewCard}>
-            <Mascot size={96} mood="wow" />
+            <Mascot size={96} mood="wow" animate />
             <Text style={font.h3}>{generationName(targetGeneration)}までのルーツ探し</Text>
             {Array.from({ length: targetGeneration }, (_, i) => i + 1).map((g) => (
               <View key={g} style={styles.previewRow}>
@@ -240,12 +241,7 @@ export default function Paywall() {
         </View>
         <View style={[styles.stepBody, { flex: 1, justifyContent: 'center' }]}>
           <Text style={styles.title}>無料体験が終わる前に{'\n'}お知らせします</Text>
-          <View style={styles.bell}>
-            <Ionicons name="notifications" size={120} color="#D6DEE2" />
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>1</Text>
-            </View>
-          </View>
+          <RingingBell />
           <Text style={[font.body, { textAlign: 'center', color: colors.textMuted }]}>
             終了の前日に通知でお知らせします。{'\n'}合わなければ、それまでに解約すれば料金はかかりません。
           </Text>
@@ -399,6 +395,25 @@ export default function Paywall() {
         onDismiss={buyWithStripe}
       />
     </SafeAreaView>
+  );
+}
+
+/** The reminder bell rings every couple of seconds, and its badge pops in. */
+function RingingBell() {
+  const ring = useLoop(2400);
+  const rotate = ring.interpolate({
+    inputRange: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 1],
+    outputRange: ['0deg', '14deg', '-12deg', '9deg', '-6deg', '0deg', '0deg'],
+  });
+  return (
+    <View style={styles.bell}>
+      <Animated.View style={{ transform: [{ rotate }] }}>
+        <Ionicons name="notifications" size={120} color="#D6DEE2" />
+      </Animated.View>
+      <PopIn delay={400} style={styles.badge}>
+        <Text style={styles.badgeText}>1</Text>
+      </PopIn>
+    </View>
   );
 }
 
