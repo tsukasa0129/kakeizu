@@ -57,7 +57,7 @@ RevenueCat プロジェクト「家系図クエスト」は設定済みです（
 | Entitlement | `premium`（`src/lib/purchases.ts` の `ENTITLEMENT_ID`） |
 | Offering | `default`（current）: `$rc_annual`（年額）/ `$rc_monthly`（月額） |
 | iOS アプリ | `com.tsk.kakeizu` — 商品 `com.tsk.kakeizu.premium_annual`（¥4,800）/ `com.tsk.kakeizu.premium_monthly`（¥800）。App Store Connect 作成済み・日本のみで販売 |
-| Android アプリ | `com.tsukasa0129.kakeizu` — 商品 `premium:annual` / `premium:monthly`（サブスクID:基本プランID） |
+| Android アプリ | `com.tsk.kakeizu` — 商品 `premium:annual` / `premium:monthly`（サブスクID:基本プランID） |
 | Test Store | `premium_annual`（¥4,800 / $29.99）/ `premium_monthly`（¥800 / $4.99） |
 | Web Billing（Stripe） | `premium_annual_web`（¥4,800 / $29.99）/ `premium_monthly_web`（¥800 / $4.99）— Stripe アカウント `acct_1UKvYcAi6mygNgkU` に接続 |
 
