@@ -19,9 +19,10 @@ const storeKey = Platform.select({
   ios: process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY,
   android: process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_KEY,
 });
-// RevenueCat Test Store: simulated purchases without store accounts.
-// Set only for the development/preview EAS profiles (and local .env), never for production.
-const nativeKey = process.env.EXPO_PUBLIC_REVENUECAT_TEST_KEY || storeKey;
+// RevenueCat Test Store: simulated purchases without store accounts. The SDK refuses test keys in
+// release builds (it shows "Wrong API Key" and closes the app), so only debug builds may use it.
+const testKey = __DEV__ ? process.env.EXPO_PUBLIC_REVENUECAT_TEST_KEY : undefined;
+const nativeKey = testKey || storeKey;
 // Web uses RevenueCat Web Billing (Stripe). `rcb_sb_` keys hit the Stripe sandbox, `rcb_` keys charge for real.
 const apiKey = Platform.OS === 'web' ? process.env.EXPO_PUBLIC_REVENUECAT_WEB_KEY : nativeKey;
 

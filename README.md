@@ -63,6 +63,7 @@ RevenueCat プロジェクト「家系図クエスト」は設定済みです（
 
 `.env.example` に公開 SDK キーが入っているので `cp .env.example .env` だけで動きます。
 開発ビルド（`__DEV__`）では `EXPO_PUBLIC_REVENUECAT_TEST_KEY` の **Test Store** が使われ、ストアのアカウントなしで購入フローを試せます。
+リリースビルド（`preview` / `production`）で Test Store のキーを使うと、SDK が「Wrong API Key」を表示してアプリを終了させるため、コード側で開発ビルドに限定しています。
 リリースビルドでは iOS / Android のキーが使われます。
 
 #### iOS で Stripe を並べて表示（日本のストアのみ）
@@ -131,7 +132,8 @@ supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
 | --- | --- | --- |
 | `development` | 開発ビルド（expo-dev-client、実機に直接インストール） | Test Store |
 | `development-simulator` | iOS シミュレーター用の開発ビルド | Test Store |
-| `preview` | 動作確認用（Android は .apk、iOS はアドホック配布） | Test Store |
+| `preview` | 動作確認用（Android は .apk、iOS はアドホック配布） | App Store / Google Play のサンドボックス |
+| `preview-simulator` | iOS シミュレーター用の動作確認ビルド | App Store のサンドボックス（シミュレーターで Apple ID のサンドボックスアカウントにサインイン） |
 | `production` | ストア提出用（ビルド番号は自動採番） | App Store / Google Play |
 
 初回だけ EAS プロジェクトを作ります（`app.json` に `extra.eas.projectId` が入ります）:

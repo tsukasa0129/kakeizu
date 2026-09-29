@@ -29,9 +29,6 @@
       "distribution": "internal",
       "android": {
         "buildType": "apk"
-      },
-      "env": {
-        "EXPO_PUBLIC_REVENUECAT_TEST_KEY": "test_ItLKZCOSNarKpoIFaMxqkiiSQoB"
       }
     },
     "preview-simulator": {
