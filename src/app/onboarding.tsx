@@ -111,7 +111,7 @@ export default function Onboarding() {
     const ok = await restore().catch(() => false);
     setRestoring(false);
     if (ok) useGame.getState().finishOnboarding(goal, targetGen);
-    else notify('購入の復元', '復元できる購入が見つかりませんでした。');
+    else notify('購入の復元', '復元できる購入が見つかりませんでした。Web でお申し込みの方は、お申し込み時のメールにある「アプリで有効にする」を開いてください。');
   };
 
   if (step === 0 && hook !== null) {

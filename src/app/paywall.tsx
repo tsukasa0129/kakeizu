@@ -132,7 +132,7 @@ export default function Paywall() {
     setBusy(true);
     const ok = await restore().catch(() => false);
     setBusy(false);
-    if (!ok) notify('購入の復元', '復元できる購入が見つかりませんでした。');
+    if (!ok) notify('購入の復元', '復元できる購入が見つかりませんでした。Web でお申し込みの方は、お申し込み時のメールにある「アプリで有効にする」を開いてください。');
   };
 
   const onReminder = async () => {

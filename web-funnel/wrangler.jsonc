@@ -1,0 +1,23 @@
+// Cloudflare Workers（静的アセット）で配信する web2app ファネル。README の「web2app ファネル」を参照。
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "kakeizu-funnel",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-09-01",
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "not_found_handling": "404-page",
+    // Without this, browser navigations to these paths get the 404 page instead of reaching the Worker.
+    "run_worker_first": ["/checkout", "/app", "/config.json"]
+  },
+  "observability": { "enabled": true },
+  "vars": {
+    // RevenueCat → Web → Web Purchase Links で `default` オファリングに作ったリンク（例: https://pay.rev.cat/xxxx）。
+    // Redemption Links を有効にして匿名購入にするので、末尾に App User ID は付けない。
+    "WEB_PURCHASE_LINK": "",
+    // アプリのストアページ（公開後に設定。例: https://apps.apple.com/jp/app/id123… / https://play.google.com/store/apps/details?id=com.tsk.kakeizu）。空のストアは「まもなく公開」と表示する。
+    "APP_STORE_URL": "",
+    "PLAY_STORE_URL": ""
+  }
+}

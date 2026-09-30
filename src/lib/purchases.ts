@@ -2,6 +2,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { Platform } from 'react-native';
 import Purchases, {
   LOG_LEVEL,
+  WebPurchaseRedemptionResultType,
   type CustomerInfo,
   type PurchasesOffering,
   type PurchasesPackage,
@@ -25,6 +26,7 @@ const nativeKey = testKey || storeKey;
 const apiKey = Platform.OS === 'web' ? process.env.EXPO_PUBLIC_REVENUECAT_WEB_KEY : nativeKey;
 
 let configured = false;
+let initializing: Promise<void> | null = null;
 
 export const purchasesAvailable = () => configured;
 
@@ -32,17 +34,21 @@ const syncEntitlement = (info: CustomerInfo) => {
   usePremium.getState().setPremium(info.entitlements.active[ENTITLEMENT_ID] !== undefined);
 };
 
-export async function initPurchases() {
-  if (configured || !apiKey) return;
-  try {
-    if (__DEV__) await Purchases.setLogLevel(LOG_LEVEL.WARN);
-    Purchases.configure({ apiKey });
-    configured = true;
-    Purchases.addCustomerInfoUpdateListener(syncEntitlement);
-    syncEntitlement(await Purchases.getCustomerInfo());
-  } catch (e) {
-    console.warn('RevenueCat init failed', e);
-  }
+/** Safe to call from several places; every caller waits for the same setup. */
+export function initPurchases(): Promise<void> {
+  initializing ??= (async () => {
+    if (!apiKey) return;
+    try {
+      if (__DEV__) await Purchases.setLogLevel(LOG_LEVEL.WARN);
+      Purchases.configure({ apiKey });
+      configured = true;
+      Purchases.addCustomerInfoUpdateListener(syncEntitlement);
+      syncEntitlement(await Purchases.getCustomerInfo());
+    } catch (e) {
+      console.warn('RevenueCat init failed', e);
+    }
+  })();
+  return initializing;
 }
 
 export async function getCurrentOffering(): Promise<PurchasesOffering | null> {
@@ -120,4 +126,44 @@ export async function restore(): Promise<boolean> {
   const info = await Purchases.restorePurchases();
   syncEntitlement(info);
   return info.entitlements.active[ENTITLEMENT_ID] !== undefined;
+}
+
+export type RedemptionOutcome =
+  | { kind: 'redeemed' }
+  | { kind: 'expired'; email: string }
+  | { kind: 'invalid' }
+  | { kind: 'otherUser' }
+  | { kind: 'failed' };
+
+/**
+ * web2app funnel: redeems a RevenueCat Redemption Link (rc-xxxx://redeem_web_purchase?redemption_token=…)
+ * that the web funnel's success page or the purchase email opened. The web purchase was anonymous,
+ * so redeeming moves it onto this device's App User ID and grants `premium`.
+ */
+export async function redeemWebPurchase(url: string): Promise<RedemptionOutcome> {
+  await initPurchases();
+  if (!configured || Platform.OS === 'web') return { kind: 'failed' };
+  try {
+    const redemption = await Purchases.parseAsWebPurchaseRedemption(url);
+    if (!redemption) return { kind: 'invalid' };
+    const result = await Purchases.redeemWebPurchase(redemption);
+    switch (result.result) {
+      case WebPurchaseRedemptionResultType.SUCCESS:
+        syncEntitlement(result.customerInfo);
+        return result.customerInfo.entitlements.active[ENTITLEMENT_ID] ? { kind: 'redeemed' } : { kind: 'failed' };
+      case WebPurchaseRedemptionResultType.EXPIRED:
+        // RevenueCat has already emailed a fresh link to the purchase's billing address.
+        return { kind: 'expired', email: result.obfuscatedEmail };
+      case WebPurchaseRedemptionResultType.INVALID_TOKEN:
+        return { kind: 'invalid' };
+      case WebPurchaseRedemptionResultType.PURCHASE_BELONGS_TO_OTHER_USER:
+        return { kind: 'otherUser' };
+      default:
+        console.warn('web purchase redemption failed', result);
+        return { kind: 'failed' };
+    }
+  } catch (e) {
+    console.warn('web purchase redemption failed', e);
+    return { kind: 'failed' };
+  }
 }
