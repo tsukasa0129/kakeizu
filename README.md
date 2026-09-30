@@ -147,6 +147,56 @@ RevenueCat プロジェクト「家系図クエスト」は設定済みです（
 
 無料プランはありません。プレミアム（サブスクリプション）で、AI 読み取り無制限・5代前までの家系図・全ユニットが使えます。
 
+### web2app ファネル（`web-funnel/`・Cloudflare Workers）
+
+広告から Web に来た人を **Web で診断 → Web で購入（Stripe）→ アプリをダウンロード → アプリで有効化** まで運ぶファネルです。
+Web で決済するので App Store / Google Play の手数料がかからず、広告の計測もしやすくなります。
+
+```
+広告 ─▶ /（LP）─▶ 診断4問 ─▶ ご先祖さまの人数 ─▶ 比較 ─▶ プラン作成 ─▶ ペイウォール
+     ─▶ /checkout ─▶ RevenueCat Web Purchase Link（Stripe）─▶ /success?redeem_url=rc-xxxx://…
+     ─▶ アプリをインストール ─▶「アプリで有効にする」─▶ アプリの /redeem_web_purchase で entitlement を付与
+```
+
+| ファイル | 内容 |
+| --- | --- |
+| `web-funnel/public/index.html` + `funnel.js` | LP・診断・プラン・ペイウォール（アプリのオンボーディングと同じ流れ・同じ見た目。まめたも同じ絵）。回答と UTM は localStorage に保存 |
+| `web-funnel/public/success.html` + `success.js` | 購入後のページ。スマホならストアへのボタンと「アプリで有効にする」、PC なら「スマホでメールを開いて」と案内 |
+| `web-funnel/src/worker.ts` | `/checkout`（Web Purchase Link に `package_id` と UTM を付けてリダイレクト）、`/app`（端末に合わせて App Store / Google Play へ）、`/config.json` |
+| `src/app/redeem_web_purchase.tsx` | アプリ側。Redemption Link（`rc-xxxx://redeem_web_purchase?redemption_token=…`）を受け取り `Purchases.redeemWebPurchase` で購入を引き継ぐ。オンボーディング前でも開けるよう `_layout.tsx` のガードの外に置いている。成功したら質問をスキップしてアプリへ（Web で回答済みのため）。期限切れのときは RevenueCat が新しいリンクをメールで送る |
+
+計測: `funnel.js` / `success.js` は `funnel_view` / `funnel_step` / `quiz_answer` / `checkout_start` / `purchase_complete` / `app_store_click` / `redeem_click` を
+`dataLayer`（GTM）・`gtag`（GA4）・`fbq`（Meta Pixel、`InitiateCheckout` / `Purchase` に対応）へ送ります。タグは `index.html` / `success.html` の `<head>` に追加してください。
+UTM（`utm_source` など5つ）はチェックアウトまで引き継がれ、RevenueCat が購入に記録します。
+
+#### 有効にする手順
+
+1. **RevenueCat → Web → Redemption Links を有効化**（アプリのアイコン・名前・ストアのリンクの登録が必要）。表示されるスキーム（`rc-…`）を
+   `eas.json` の `base.env.REVENUECAT_REDEMPTION_SCHEME` と `.env` に設定し、**アプリをビルドし直す**（`app.config.ts` がスキームを登録します。ネイティブ設定なので OTA では反映されません）
+2. **RevenueCat → Web → Web Purchase Links** でファネル用のリンクを `default` オファリングで作成（アプリ内 Stripe 用の `EXPO_PUBLIC_REVENUECAT_WEB_PURCHASE_LINK` とは別に作ると、成功時の動作を分けられます）
+   - 成功時の動作: **Custom redirect URL** に `https://<ファネルのドメイン>/success`（`redeem_url` が自動で付きます）
+   - Web Billing の Stripe を本番モードに接続し、本番の商品（`premium_annual_web` / `premium_monthly_web`）を使う
+3. `web-funnel/wrangler.jsonc` の `vars` に `WEB_PURCHASE_LINK`（手順2のリンク）と、公開後に `APP_STORE_URL` / `PLAY_STORE_URL` を設定
+4. `web-funnel/public/common.js` の `LEGAL`（利用規約・プライバシー・**特定商取引法に基づく表記**）を実際のページに差し替える。Web での販売には特商法表記が必須です
+5. 価格表示は `funnel.js` の `PRICES` です。Web Billing の商品価格を変えたら合わせてください（Web 限定価格にする場合もここと RevenueCat の商品を変更）
+6. デプロイ
+
+```bash
+cd web-funnel
+npm install
+npm run dev        # http://localhost:8787 （--var WEB_PURCHASE_LINK:https://pay.rev.cat/… で上書き可）
+npm run typecheck
+npx wrangler login # 初回のみ（CI では CLOUDFLARE_API_TOKEN を設定）
+npm run deploy     # https://kakeizu-funnel.<アカウント>.workers.dev
+```
+
+独自ドメインは Cloudflare ダッシュボードの Workers → kakeizu-funnel → Settings → Domains & Routes で追加します。
+
+注意:
+- `WEB_PURCHASE_LINK` が空のあいだは、購入ボタンを押すと「ただいまお申し込みを受け付けていません」と表示します
+- App Store の商品ページやアプリ内に、このファネル（Web で安く買える等）への誘導を書いてはいけません（アプリ内の Stripe は上の「iOS で Stripe を並べて表示」の条件どおりに）
+- Redemption Link はアプリをインストールしたスマホで開く必要があります。PC で購入した人は、購入完了メールのリンクをスマホで開いてもらいます
+
 ### Supabase Edge Function（AI 読み取り）
 
 ```bash

@@ -76,6 +76,8 @@ export default function RootLayout() {
           <Stack.Screen name="book" options={{ presentation: 'modal' }} />
           <Stack.Screen name="celebrate" options={{ presentation: 'transparentModal', animation: 'fade' }} />
         </Stack.Protected>
+        {/* web2app: opened by the web funnel's Redemption Link, even before onboarding. */}
+        <Stack.Screen name="redeem_web_purchase" options={{ gestureEnabled: false }} />
       </Stack>
       {inApp && <RewardWatcher />}
     </SafeAreaProvider>
