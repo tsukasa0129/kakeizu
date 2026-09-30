@@ -171,11 +171,13 @@ UTM（`utm_source` など5つ）はチェックアウトまで引き継がれ、
 
 #### 有効にする手順
 
-1. **RevenueCat → Web → Redemption Links を有効化**（アプリのアイコン・名前・ストアのリンクの登録が必要）。表示されるスキーム（`rc-…`）を
-   `eas.json` の `base.env.REVENUECAT_REDEMPTION_SCHEME` と `.env` に設定し、**アプリをビルドし直す**（`app.config.ts` がスキームを登録します。ネイティブ設定なので OTA では反映されません）
-2. **RevenueCat → Web → Web Purchase Links** でファネル用のリンクを `default` オファリングで作成（アプリ内 Stripe 用の `EXPO_PUBLIC_REVENUECAT_WEB_PURCHASE_LINK` とは別に作ると、成功時の動作を分けられます）
+1. **RevenueCat → Web → Redemption Links を有効化**（アプリのアイコン・名前・ストアのリンクの登録が必要）。
+   Web Billing アプリ「家系図クエスト (Web)」のスキームは `rc-591233cc18` で、`eas.json` の `base.env.REVENUECAT_REDEMPTION_SCHEME` と `.env.example` に設定済みです。
+   ダッシュボードに表示されるスキームがこれと違う場合は差し替えてください。反映には**アプリのビルドし直し**が必要です（ネイティブ設定なので OTA では反映されません）
+2. **RevenueCat → Web → Web Purchase Links** でファネル用のリンクを **`web_funnel` オファリング**（Web 用商品 `premium_annual_web` ¥4,800 / `premium_monthly_web` ¥800 のみ）で作成
+   （アプリ内 Stripe 用の `EXPO_PUBLIC_REVENUECAT_WEB_PURCHASE_LINK` は `default` オファリングのまま分けておくと、成功時の動作を分けられます）
    - 成功時の動作: **Custom redirect URL** に `https://<ファネルのドメイン>/success`（`redeem_url` が自動で付きます）
-   - Web Billing の Stripe を本番モードに接続し、本番の商品（`premium_annual_web` / `premium_monthly_web`）を使う
+   - Web Billing の Stripe を本番モードに接続し、アプリ設定でサポート用メールアドレスを登録（基本通貨は JPY に設定済み）
 3. `web-funnel/wrangler.jsonc` の `vars` に `WEB_PURCHASE_LINK`（手順2のリンク）と、公開後に `APP_STORE_URL` / `PLAY_STORE_URL` を設定
 4. `web-funnel/public/common.js` の `LEGAL`（利用規約・プライバシー・**特定商取引法に基づく表記**）を実際のページに差し替える。Web での販売には特商法表記が必須です
 5. 価格表示は `funnel.js` の `PRICES` です。Web Billing の商品価格を変えたら合わせてください（Web 限定価格にする場合もここと RevenueCat の商品を変更）
