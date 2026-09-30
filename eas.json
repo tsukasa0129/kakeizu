@@ -29,6 +29,9 @@
       "distribution": "internal",
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_PAYWALL_TEST_BYPASS": "1"
       }
     },
     "preview-simulator": {

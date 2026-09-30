@@ -24,6 +24,13 @@ const nativeKey = testKey || storeKey;
 // Web uses RevenueCat Web Billing (Stripe). `rcb_sb_` keys hit the Stripe sandbox, `rcb_` keys charge for real.
 const apiKey = Platform.OS === 'web' ? process.env.EXPO_PUBLIC_REVENUECAT_WEB_KEY : nativeKey;
 
+/**
+ * Dev and preview (internal test) builds may skip the paywall when plans can't be loaded, e.g. a
+ * sideloaded APK that Google Play won't sell to, or App Store products not yet approved.
+ * Never set EXPO_PUBLIC_PAYWALL_TEST_BYPASS for production builds.
+ */
+export const PAYWALL_TEST_BYPASS = __DEV__ || process.env.EXPO_PUBLIC_PAYWALL_TEST_BYPASS === '1';
+
 let configured = false;
 
 export const purchasesAvailable = () => configured;

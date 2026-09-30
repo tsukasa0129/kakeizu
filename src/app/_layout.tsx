@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import { initPurchases } from '@/lib/purchases';
+import { initPurchases, PAYWALL_TEST_BYPASS } from '@/lib/purchases';
 import { useFamily } from '@/store/family';
 import { useGame } from '@/store/game';
 import { usePremium } from '@/store/premium';
@@ -36,7 +36,9 @@ function RewardWatcher() {
 export default function RootLayout() {
   const hydrated = useHydrated();
   const onboarded = useGame((s) => s.onboarded);
-  const isPremium = usePremium((s) => s.isPremium);
+  const entitled = usePremium((s) => s.isPremium);
+  const testUnlocked = usePremium((s) => s.testUnlocked);
+  const isPremium = entitled || (PAYWALL_TEST_BYPASS && testUnlocked);
   // The app is subscription-only: onboarding → paywall → app. A lapsed subscription returns to the paywall.
   const inApp = onboarded && isPremium;
 

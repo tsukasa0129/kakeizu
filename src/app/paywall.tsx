@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { PACKAGE_TYPE, type PurchasesOffering, type PurchasesPackage } from 'react-native-purchases';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -13,6 +13,7 @@ import { PopIn, useLoop } from '@/components/Motion';
 import { notify } from '@/lib/notify';
 import {
   getCurrentOffering,
+  PAYWALL_TEST_BYPASS,
   purchase,
   purchasesAvailable,
   purchaseWithStripe,
@@ -78,18 +79,34 @@ export default function Paywall() {
     stripeCheckoutAvailable().then(setStripeOffered);
   }, []);
 
-  useEffect(() => {
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const fetchOffering = useCallback(() => {
     getCurrentOffering()
       .then((o) => {
-        setOffering(o);
-        const annual = o?.availablePackages.find((p) => p.packageType === PACKAGE_TYPE.ANNUAL);
-        const initial = annual ?? o?.availablePackages[0] ?? null;
+        const usable = o && o.availablePackages.length > 0 ? o : null;
+        setOffering(usable);
+        if (!usable) setLoadError(o ? 'オファリングに購入できるプランがありません。' : null);
+        const annual = usable?.availablePackages.find((p) => p.packageType === PACKAGE_TYPE.ANNUAL);
+        const initial = annual ?? usable?.availablePackages[0] ?? null;
         setSelected(initial);
         if (freeTrialDays(initial?.product.introPrice)) setStep('offer');
       })
-      .catch((e) => console.warn('offerings', e))
+      .catch((e) => {
+        console.warn('offerings', e);
+        setLoadError(String((e as { message?: string }).message ?? e));
+      })
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    fetchOffering();
+  }, [fetchOffering]);
+
+  const retryOffering = () => {
+    setLoading(true);
+    setLoadError(null);
+    fetchOffering();
+  };
 
   const annual = offering?.availablePackages.find((p) => p.packageType === PACKAGE_TYPE.ANNUAL);
   const monthly = offering?.availablePackages.find((p) => p.packageType === PACKAGE_TYPE.MONTHLY);
@@ -186,12 +203,19 @@ export default function Paywall() {
               ? 'RevenueCat のAPIキーが未設定です。.env に EXPO_PUBLIC_REVENUECAT_WEB_KEY を設定してください。'
               : 'RevenueCat のAPIキーが未設定です。.env に EXPO_PUBLIC_REVENUECAT_IOS_KEY / ANDROID_KEY を設定し、開発ビルドで起動してください。'}
         </Text>
-        {__DEV__ && !purchasesAvailable() && (
-          <Button3D
-            title="開発用：課金をスキップ"
-            variant="outline"
-            onPress={() => usePremium.getState().setPremium(true)}
-          />
+        {purchasesAvailable() && <Button3D title="もう一度読み込む" onPress={retryOffering} />}
+        {PAYWALL_TEST_BYPASS && (
+          <View style={styles.testBox}>
+            <Text style={[font.small, { textAlign: 'center' }]}>
+              テスト用ビルドのため、課金せずに先へ進めます（ストア版には表示されません）。
+              {loadError ? `\n原因: ${loadError}` : ''}
+            </Text>
+            <Button3D
+              title="テスト用：課金せずに入る"
+              variant="outline"
+              onPress={() => usePremium.getState().setTestUnlocked(true)}
+            />
+          </View>
         )}
         {footer}
       </SafeAreaView>
@@ -522,6 +546,15 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
   },
   ribbonText: { color: '#fff', fontWeight: '800', fontSize: 11 },
+  testBox: {
+    alignSelf: 'stretch',
+    gap: 10,
+    padding: 12,
+    borderRadius: radius.md,
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    borderColor: colors.border,
+  },
   activeBox: {
     flexDirection: 'row',
     alignItems: 'center',
