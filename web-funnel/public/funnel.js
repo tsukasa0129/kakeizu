@@ -34,10 +34,16 @@ const FIRST_STEP = {
 const GEN_NAMES = ['あなた', '父母', '祖父母', '曾祖父母', '高祖父母', '5代前'];
 const CALC_ITEMS = ['さかのぼる世代', '必要な戸籍の種類', '請求先の役所', '学習パス'];
 const FEATURES = [
-  ['AIで戸籍を読み取り', '撮るだけで人物・続柄・日付を読み取り、家系図に自動で配置（無制限）'],
-  ['5代前まで広がる家系図', 'あなた → 父母 → 祖父母 → 曾祖父母 → 高祖父母 …'],
-  ['役所ナビ', '本籍地の調べ方から、次に請求する戸籍までチェックリストで案内'],
-  ['ゲーム感覚で続く', 'レッスン・連続記録・クエストで、少しずつ空欄が埋まる'],
+  ['scroll', 'AIで戸籍を読み取り', '撮るだけで人物・続柄・日付を読み取り、家系図に自動で配置（無制限）'],
+  ['tree', '5代前まで広がる家系図', 'あなた → 父母 → 祖父母 → 曾祖父母 → 高祖父母 …'],
+  ['office', '役所ナビ', '本籍地の調べ方から、次に請求する戸籍までチェックリストで案内'],
+  ['spark', 'ゲーム感覚で続く', 'レッスン・連続記録・クエストで、少しずつ空欄が埋まる'],
+];
+const COMPARE = [
+  ['請求先の役所を自分で調べる', '役所ナビが次の請求先を案内'],
+  ['古い手書きの戸籍を読み解く', '撮るだけでAIが読み取り'],
+  ['家系図を手で書き起こす', '家系図に自動で配置'],
+  ['途中で止まりがち', 'レッスンと連続記録で続く'],
 ];
 
 const STEPS = ['landing', 'hook', 'motive', 'target', 'knowledge', 'experience', 'insight', 'compare', 'calc', 'plan', 'paywall'];
@@ -60,115 +66,132 @@ for (const key of ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_
 }
 store.set('utm', utm);
 
-function says(text) {
-  return `<div class="says"><img src="/mascot.svg" alt=""><div class="bubble">${text}</div></div>`;
-}
-
-function progress(step) {
+function header(step) {
   const i = STEPS.indexOf(step);
   const pct = Math.round((i / (STEPS.length - 2)) * 100);
-  return `<div class="topbar"><button class="back" data-back aria-label="戻る">‹</button><div class="progress"><i style="width:${pct}%"></i></div></div>`;
+  return `<div class="topbar"><button class="back" data-back aria-label="戻る">${icon('back')}</button><div class="progress" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100"><i style="width:${pct}%"></i></div></div>`;
 }
 
-function options(key, items) {
-  return `<div class="options">${items
-    .map(
-      (item, i) => `<button class="option${answers[key] === item.value ? ' selected' : ''}" style="animation-delay:${i * 60}ms" data-answer="${key}" data-value="${item.value}">
-        <span>${item.label}${item.sub ? `<small>${item.sub}</small>` : ''}</span>
-      </button>`,
-    )
-    .join('')}</div>`;
+/** A question screen: title, why we ask, filled option cards, and a Continue that waits for an answer. */
+function question(key, title, why, items) {
+  const chosen = answers[key] !== undefined;
+  return `
+    ${header(key)}
+    <section class="screen">
+      <h1>${title}</h1>
+      <p class="lead">${why}</p>
+      <div class="options" role="radiogroup">${items
+        .map(
+          (item, i) => `<button class="option${answers[key] === item.value ? ' selected' : ''}" role="radio" aria-checked="${answers[key] === item.value}" style="animation-delay:${i * 40}ms" data-answer="${key}" data-value="${item.value}">
+            <span>${item.label}${item.sub ? `<small>${item.sub}</small>` : ''}</span><span class="tick">${icon('check', 14)}</span>
+          </button>`,
+        )
+        .join('')}</div>
+      <div class="grow"></div>
+      <div class="bottom"><button class="btn" data-next ${chosen ? '' : 'disabled'}>続ける</button></div>
+    </section>`;
+}
+
+/** The product in one picture: a family tree whose boxes fill in as koseki are scanned. */
+function treeMock() {
+  const box = (x, y, w, label, name) => {
+    const filled = name !== '?';
+    return `<g><rect x="${x}" y="${y}" width="${w}" height="38" rx="9" fill="${filled ? '#EFFBE5' : '#fff'}" stroke="${filled ? '#58CC02' : '#D4D4D4'}" stroke-width="2" ${filled ? '' : 'stroke-dasharray="4 3"'}/>
+      <text x="${x + w / 2}" y="${y + 15}" text-anchor="middle" font-size="9" font-weight="700" fill="#777">${label}</text>
+      <text x="${x + w / 2}" y="${y + 30}" text-anchor="middle" font-size="12" font-weight="800" fill="${filled ? '#3C3C3C' : '#AFAFAF'}">${name}</text></g>`;
+  };
+  const line = (d) => `<path d="${d}" stroke="#D4D4D4" stroke-width="2" fill="none"/>`;
+  return `<svg class="tree" width="232" height="176" viewBox="0 0 232 176" aria-hidden="true">
+    ${line('M27 40v12h56V40M57 52v18')}${line('M149 40v12h56V40M177 52v18')}${line('M57 108v12h120v-12M117 120v14')}
+    ${box(2, 2, 50, '祖父', '健一')}${box(58, 2, 50, '祖母', 'ハル')}${box(124, 2, 50, '祖父', '?')}${box(180, 2, 50, '祖母', '?')}
+    ${box(22, 70, 70, '父', '誠')}${box(142, 70, 70, '母', '?')}
+    ${box(72, 134, 90, '本人', 'あなた')}
+  </svg>`;
 }
 
 const screens = {
   landing: () => `
     <section class="screen hero">
-      <img class="mascot" src="/mascot.svg" alt="まめだぬきのまめた">
-      <span class="badge">1分でわかる 無料診断</span>
-      <h1>戸籍を撮るだけで、<br><span class="accent">ご先祖さまの家系図</span>に。</h1>
-      <p class="muted">あなたが会えるご先祖さまの人数と、<br>戸籍をさかのぼるプランを診断します。</p>
-      <div class="card" style="text-align:left">
-        ${FEATURES.slice(0, 3).map(([t, d]) => `<div class="feature"><div class="icon">${check()}</div><div><h3>${t}</h3><p class="small" style="margin:0">${d}</p></div></div>`).join('')}
+      <div class="hero-wrap">
+        <div class="device">
+          <div class="notch"></div>
+          <div class="bar">わたしの家系図<span class="num">3 / 7人</span></div>
+          ${treeMock()}
+          <div class="toast"><span class="dot">${icon('check', 14)}</span>戸籍から2人を追加しました</div>
+        </div>
+        <img class="peek" src="/mascot.svg" alt="">
       </div>
+      <h1>戸籍を撮るだけで、<br><span class="accent">ご先祖さまの家系図</span>に。</h1>
+      <p class="muted">1分の診断で、会えるご先祖さまの人数と<wbr>戸籍をさかのぼるプランがわかります。</p>
       <div class="grow"></div>
       <div class="bottom">
-        <button class="btn" data-next>無料で診断をはじめる</button>
+        <button class="btn" data-next>無料で診断する</button>
         <p class="small" style="margin:0">すでにアプリをお持ちの方は、アプリからご利用ください</p>
       </div>
       ${legalFooter()}
     </section>`,
 
   hook: () => `
-    ${progress('hook')}
-    <section class="screen center">
-      <p class="muted" style="font-weight:700">10代さかのぼると、ご先祖さまは</p>
-      <div class="big-number" data-count="1024">0</div>
-      <p style="font-weight:800;font-size:20px">人</p>
-      <p class="muted">戸籍をたどれば、江戸時代生まれのご先祖さまに<br>出会えることもあります。</p>
+    ${header('hook')}
+    <section class="screen">
+      <h1>10代さかのぼると、<br>ご先祖さまは何人？</h1>
+      <p class="lead">父母が2人、祖父母が4人…と、1代ごとに倍になります。</p>
+      <div class="stat-card" style="text-align:center">
+        <div class="big-number" data-count="1024">0</div>
+        <b>人</b>
+        <p class="small" style="margin:8px 0 0">戸籍をたどれば、江戸時代生まれのご先祖さまに出会えることもあります。</p>
+      </div>
       <div class="grow"></div>
-      <div class="bottom"><button class="btn" data-next>つぎへ</button></div>
+      <div class="bottom"><button class="btn" data-next>続ける</button></div>
     </section>`,
 
-  motive: () => `
-    ${progress('motive')}
-    <section class="screen">
-      ${says('家系図をつくろうと思ったきっかけは？')}
-      ${options('motive', MOTIVES.map((m) => ({ value: m, label: m })))}
-    </section>`,
+  motive: () =>
+    question('motive', '家系図をつくろうと<br>思ったきっかけは？', 'あなたに合ったプランづくりに使います。', MOTIVES.map((m) => ({ value: m, label: m }))),
 
-  target: () => `
-    ${progress('target')}
-    <section class="screen">
-      ${says('何代前まで知りたい？')}
-      ${options('target', TARGETS.map((t) => ({ value: t.gen, label: t.label, sub: t.sub })))}
-    </section>`,
+  target: () =>
+    question('target', '何代前まで<br>知りたいですか？', 'ゴールに合わせて、必要な戸籍をご案内します。', TARGETS.map((t) => ({ value: t.gen, label: t.label, sub: t.sub }))),
 
-  knowledge: () => `
-    ${progress('knowledge')}
-    <section class="screen">
-      ${says('祖父母4人のお名前、いくつ言える？')}
-      ${options('knowledge', KNOWLEDGE.map((k) => ({ value: k.id, label: k.label })))}
-    </section>`,
+  knowledge: () =>
+    question('knowledge', '祖父母4人のお名前、<br>いくつ言えますか？', 'いまの家系図の出発点がわかります。', KNOWLEDGE.map((k) => ({ value: k.id, label: k.label }))),
 
-  experience: () => `
-    ${progress('experience')}
-    <section class="screen">
-      ${says('戸籍を取ったことはある？')}
-      ${options('experience', EXPERIENCE.map((e) => ({ value: e.id, label: e.label })))}
-    </section>`,
+  experience: () =>
+    question('experience', '戸籍を取ったことは<br>ありますか？', '最初の一歩を決めるのに使います。', EXPERIENCE.map((e) => ({ value: e.id, label: e.label }))),
 
   insight: () => {
     const gen = targetGen();
     const rows = Array.from({ length: gen }, (_, i) => i + 1);
     return `
-    ${progress('insight')}
+    ${header('insight')}
     <section class="screen">
-      ${says(`${targetLabel()}だと、会えるご先祖さまは…`)}
-      <div style="text-align:center"><span class="big-number" data-count="${ancestorsUpTo(gen)}">0</span><b style="font-size:20px"> 人</b></div>
-      <div class="bars">
-        ${rows
-          .map(
-            (g) => `<div class="bar-row"><span>${GEN_NAMES[g]}</span><div class="bar"><i data-width="${(ancestorsAt(g) / ancestorsAt(gen)) * 100}"></i></div><span>${ancestorsAt(g)}人</span></div>`,
-          )
-          .join('')}
-      </div>
-      <p class="muted">${answers.knowledge === 'all' ? '祖父母のお名前を言えるのは、すばらしいことです。' : 'お名前がわからなくても大丈夫。'}${
+      <h1>${targetLabel()}で、<br>会えるご先祖さまは</h1>
+      <p class="lead">${answers.knowledge === 'all' ? '祖父母のお名前を言えるのは、すばらしいことです。' : 'お名前がわからなくても大丈夫。'}${
         gen >= 3 ? '曾祖父母より前の方々は、戸籍を取るとお名前がわかります。' : '戸籍を取ると、生年月日や出身地までわかります。'
       }</p>
+      <div class="stat-card">
+        <div><span class="big-number" data-count="${ancestorsUpTo(gen)}">0</span> <b>人</b></div>
+        <div class="bars">
+          ${rows
+            .map(
+              (g) => `<div class="bar-row"><span>${GEN_NAMES[g]}</span><div class="bar"><i data-width="${(ancestorsAt(g) / ancestorsAt(gen)) * 100}"></i></div><span>${ancestorsAt(g)}人</span></div>`,
+            )
+            .join('')}
+        </div>
+      </div>
       <div class="grow"></div>
-      <div class="bottom"><button class="btn" data-next>つぎへ</button></div>
+      <div class="bottom"><button class="btn" data-next>続ける</button></div>
     </section>`;
   },
 
   compare: () => `
-    ${progress('compare')}
+    ${header('compare')}
     <section class="screen">
-      ${says('ひとりでやるのと、なにがちがうの？')}
+      <h1>つまずきやすいところを、<br>アプリが手伝います</h1>
+      <p class="lead">ひとりで戸籍をさかのぼるのは、大変な作業です。</p>
       <div class="compare">
-        <div class="card"><h3>ひとりで</h3><ul class="muted">
-          <li>・どの役所に請求するか調べる</li><li>・古い手書きの戸籍を読み解く</li><li>・図を手で書き起こす</li><li>・途中で止まりがち</li></ul></div>
-        <div class="card us"><h3 class="accent">家系図クエスト</h3><ul>
-          <li>・役所ナビが次の請求先を案内</li><li>・撮るだけでAIが読み取り</li><li>・家系図に自動で配置</li><li>・ゲーム感覚で続く</li></ul></div>
+        <div class="row head"><div>ひとりで</div><div>家系図クエスト</div></div>
+        ${COMPARE.map(
+          ([alone, us]) => `<div class="row"><div><span class="no">${icon('dash', 16)}</span>${alone}</div><div><span class="yes">${icon('check', 16)}</span>${us}</div></div>`,
+        ).join('')}
       </div>
       <div class="grow"></div>
       <div class="bottom"><button class="btn" data-next>わたしのプランをつくる</button></div>
@@ -177,73 +200,74 @@ const screens = {
   calc: () => `
     <div class="topbar"></div>
     <section class="screen center">
+      <div class="calc-pct" id="pct">0%</div>
       <h2>あなた専用のプランを<br>作成しています</h2>
-      <div class="calc-ring" id="ring"><span id="pct">0%</span></div>
-      <ul class="checklist">${CALC_ITEMS.map((c) => `<li>${c}</li>`).join('')}</ul>
+      <div class="calc-bar"><i id="calcbar"></i></div>
+      <ul class="checklist">${CALC_ITEMS.map((c) => `<li><span class="tick">${icon('check', 14)}</span>${c}</li>`).join('')}</ul>
+      <div class="grow"></div>
     </section>`,
 
   plan: () => `
     <div class="topbar"></div>
-    <section class="screen">
-      <div style="text-align:center"><img src="/mascot.svg" alt="" style="width:110px;height:110px"></div>
-      <h2 style="text-align:center">あなた専用プランが<br>できました！</h2>
-      <div class="card plan-summary">
-        <div class="row"><span class="muted">ゴール</span><b>${targetLabel()}</b></div>
-        <div class="row"><span class="muted">会えるご先祖さま</span><b>${ancestorsUpTo(targetGen())}人</b></div>
-        <div class="row"><span class="muted">最初の一歩</span><b>${FIRST_STEP[answers.experience] ?? FIRST_STEP.unknown}</b></div>
+    <section class="screen" style="text-align:center">
+      <img class="pop" src="/mascot.svg" alt="" style="width:104px;height:104px;margin:0 auto">
+      <h1>あなた専用プランが<br>できました</h1>
+      <span class="result-pill num">${targetLabel()}・${ancestorsUpTo(targetGen())}人のご先祖さま</span>
+      <div class="summary">
+        <div class="cell"><div class="label">さかのぼる世代</div><div class="value num">${targetGen()}代前</div></div>
+        <div class="cell"><div class="label">会えるご先祖さま</div><div class="value num">${ancestorsUpTo(targetGen())}人</div></div>
+        <div class="cell wide"><span class="ic">${icon('scroll')}</span><div><div class="label">最初の一歩</div><div class="value">${FIRST_STEP[answers.experience] ?? FIRST_STEP.unknown}</div></div></div>
       </div>
-      <p class="small" style="margin-top:12px">完成した家系図は、本にして残すこともできます（製本は別料金）。</p>
+      <p class="small" style="margin-top:14px">完成した家系図は、本にして残すこともできます（製本は別料金）。</p>
       <div class="grow"></div>
-      <div class="bottom"><button class="btn" data-next>プランをはじめる</button></div>
+      <div class="bottom"><button class="btn" data-next>続ける</button></div>
     </section>`,
 
   paywall: () => {
     const unavailable = params.get('checkout') === 'unavailable';
+    const p = PRICES[plan];
     return `
-    <div class="topbar"><button class="back" data-back aria-label="戻る">‹</button></div>
+    <div class="topbar"><button class="back" data-back aria-label="戻る">${icon('back')}</button></div>
     <section class="screen">
-      <h2>${targetLabel()}の家系図を、<br>今日からはじめよう</h2>
-      <div class="card">
-        ${FEATURES.map(([t, d]) => `<div class="feature"><div class="icon">${check()}</div><div><h3>${t}</h3><p class="small" style="margin:0">${d}</p></div></div>`).join('')}
-      </div>
+      <h1>${targetLabel()}の家系図を、<br>今日からつくろう</h1>
+      <ol class="timeline">
+        <li><span class="dot">${icon('unlock')}</span><div><h3>今日</h3><p>すべての機能が使えるようになります</p></div></li>
+        <li><span class="dot">${icon('phone')}</span><div><h3>お申し込みのあと</h3><p>アプリを入れて、プランを有効にします</p></div></li>
+        <li><span class="dot">${icon('tree')}</span><div><h3>戸籍が届いたら</h3><p>撮るだけで、AIが家系図に配置します</p></div></li>
+      </ol>
       <div class="plans" role="radiogroup" aria-label="プラン">
-        ${planCard('annual', `<span class="ribbon">${SAVINGS}%おトク</span>`)}
-        ${planCard('monthly', '')}
+        ${planCard('monthly')}
+        ${planCard('annual')}
       </div>
       ${unavailable ? '<div class="notice">ただいまお申し込みを受け付けていません。時間をおいてお試しください。</div>' : ''}
-      <div class="card">
-        <h3>お申し込みのあと</h3>
-        <ol class="steps">
-          <li><span>クレジットカードでお支払い（Stripe の安全な決済ページ）</span></li>
-          <li><span>アプリ「家系図クエスト」をダウンロード</span></li>
-          <li><span>完了ページの「アプリで有効にする」をタップ。そのまま使いはじめられます</span></li>
-        </ol>
+      <div class="reassure">${icon('check', 18)}いつでも解約できます</div>
+      <button class="btn" data-checkout>${p.label}ではじめる</button>
+      <p class="small fine num">${p.price}/${p.per}・自動更新<br>解約しても次の更新日まで使えます<br>お支払いは Stripe の安全な決済ページで行います</p>
+
+      <div class="section-title">家系図クエストでできること</div>
+      <div class="features">
+        ${FEATURES.map(([ic, t, d]) => `<div class="feature"><span class="ic">${icon(ic)}</span><div><h3>${t}</h3><p>${d}</p></div></div>`).join('')}
       </div>
-      <div style="margin-top:12px">
-        <details><summary>iPhone と Android のどちらで使えますか？</summary><p>どちらでも使えます。Web でお申し込みいただいたプランを、アプリで有効にしてご利用ください。</p></details>
-        <details><summary>解約はいつでもできますか？</summary><p>はい。お申し込み時のメールにある管理ページ、またはアプリの「プロフィール → サブスクリプションを管理」からいつでも解約できます。次回更新日までは引き続きご利用いただけます。</p></details>
-        <details><summary>戸籍の画像は保存されますか？</summary><p>読み取りのためにメモリ上で処理するだけで、画像は保存しません。</p></details>
-        <details><summary>製本の料金も含まれますか？</summary><p>含まれません。家系図を本にする場合は、アプリから別料金でご注文いただけます。</p></details>
-      </div>
-      <div class="bottom">
-        <button class="btn" data-checkout>${PRICES[plan].label}ではじめる</button>
-        <p class="small" style="margin:0;text-align:center">${PRICES[plan].price}/${PRICES[plan].per}・自動更新。いつでも解約できます。</p>
-      </div>
+      <div class="section-title">よくある質問</div>
+      <details><summary>iPhone と Android のどちらで使えますか？</summary><p>どちらでも使えます。Web でお申し込みいただいたプランを、アプリで有効にしてご利用ください。</p></details>
+      <details><summary>解約はいつでもできますか？</summary><p>はい。お申し込み時のメールにある管理ページ、またはアプリの「プロフィール → サブスクリプションを管理」からいつでも解約できます。次回更新日までは引き続きご利用いただけます。</p></details>
+      <details><summary>戸籍の画像は保存されますか？</summary><p>読み取りのためにメモリ上で処理するだけで、画像は保存しません。</p></details>
+      <details><summary>製本の料金も含まれますか？</summary><p>含まれません。家系図を本にする場合は、アプリから別料金でご注文いただけます。</p></details>
       ${legalFooter()}
     </section>`;
   },
 };
 
-function planCard(id, extra) {
+function planCard(id) {
   const p = PRICES[id];
-  return `<button class="plan${plan === id ? ' selected' : ''}" role="radio" aria-checked="${plan === id}" data-plan="${id}">
-    ${extra}<span class="radio"></span><span class="name">${p.label}</span>
-    <span class="price">${p.price}/${p.per}${p.monthly ? `<small>月あたり${p.monthly}</small>` : ''}</span>
+  const selected = plan === id;
+  return `<button class="plan${selected ? ' selected' : ''}" role="radio" aria-checked="${selected}" data-plan="${id}">
+    ${id === 'annual' ? `<span class="badge">${SAVINGS}%おトク</span>` : ''}
+    <span class="tick">${icon('check', 12)}</span>
+    <span class="name">${p.label}</span>
+    <span class="price">${p.price}<small>/${p.per}</small></span>
+    <span class="sub">${p.monthly ? `月あたり${p.monthly}` : '&nbsp;'}</span>
   </button>`;
-}
-
-function check() {
-  return '<svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#58CC02"/><path d="M7 12.5l3.2 3.2L17 9" stroke="#fff" stroke-width="2.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 }
 
 // ---- navigation (browser back works through history.state) ----
@@ -282,13 +306,23 @@ root.addEventListener('click', (e) => {
     const key = el.dataset.answer;
     answers[key] = key === 'target' ? Number(el.dataset.value) : el.dataset.value;
     store.set('answers', answers);
-    root.querySelectorAll(`[data-answer="${key}"]`).forEach((b) => b.classList.toggle('selected', b === el));
+    root.querySelectorAll(`[data-answer="${key}"]`).forEach((b) => {
+      b.classList.toggle('selected', b === el);
+      b.setAttribute('aria-checked', String(b === el));
+    });
+    root.querySelector('[data-next]')?.removeAttribute('disabled');
     track('quiz_answer', { question: key, answer: String(answers[key]) });
-    setTimeout(next, 280);
   } else if (el.dataset.plan) {
     plan = el.dataset.plan;
     store.set('plan', plan);
-    show('paywall', { history: 'none' });
+    // Update in place so the page doesn't jump back to the top.
+    root.querySelectorAll('[data-plan]').forEach((b) => {
+      b.classList.toggle('selected', b === el);
+      b.setAttribute('aria-checked', String(b === el));
+    });
+    const p = PRICES[plan];
+    root.querySelector('[data-checkout]').textContent = `${p.label}ではじめる`;
+    root.querySelector('.fine').innerHTML = root.querySelector('.fine').innerHTML.replace(/^[^・]+/, `${p.price}/${p.per}`);
   } else if (el.hasAttribute('data-checkout')) {
     startCheckout(el);
   }
@@ -319,7 +353,6 @@ function animate(step) {
     }),
   );
   if (step === 'calc') runCalc(reduced);
-  if (step === 'plan' && !reduced) confetti();
 }
 
 function countUp(el, to, ms) {
@@ -333,7 +366,7 @@ function countUp(el, to, ms) {
 }
 
 function runCalc(reduced) {
-  const ring = document.getElementById('ring');
+  const bar = document.getElementById('calcbar');
   const pct = document.getElementById('pct');
   const items = root.querySelectorAll('.checklist li');
   const total = reduced ? 600 : 3200;
@@ -342,28 +375,13 @@ function runCalc(reduced) {
     if (current !== 'calc') return;
     const t = Math.min(1, (now - start) / total);
     const p = Math.round(t * 100);
-    ring.style.setProperty('--p', p);
+    bar.style.width = `${p}%`;
     pct.textContent = `${p}%`;
     items.forEach((li, i) => li.classList.toggle('done', p >= ((i + 1) / items.length) * 100 - 5));
     if (t < 1) requestAnimationFrame(tick);
     else setTimeout(() => current === 'calc' && show('plan', { history: 'replace' }), 400);
   };
   requestAnimationFrame(tick);
-}
-
-function confetti() {
-  const layer = document.createElement('div');
-  layer.className = 'confetti';
-  const colors = ['#58CC02', '#1CB0F6', '#FF9600', '#FFC800', '#CE82FF', '#FF4B4B'];
-  for (let i = 0; i < 40; i++) {
-    const piece = document.createElement('i');
-    piece.style.left = `${Math.random() * 100}%`;
-    piece.style.background = colors[i % colors.length];
-    piece.style.animationDelay = `${Math.random() * 0.6}s`;
-    layer.appendChild(piece);
-  }
-  document.body.appendChild(layer);
-  setTimeout(() => layer.remove(), 3200);
 }
 
 // ---- start ----

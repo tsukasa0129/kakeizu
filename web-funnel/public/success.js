@@ -38,39 +38,38 @@ function storeButtons(config) {
 function render(config) {
   const mobile = platform !== 'desktop';
   const redeemStep = redeemUrl
-    ? `<a class="btn blue" href="${redeemUrl}" data-redeem>アプリで有効にする</a>
-       <p class="small" style="margin:8px 0 0">アプリを入れてから押してください。${
-         stale ? 'このリンクの有効期限（1時間）が過ぎている場合は、アプリで有効にするときに新しいリンクをメールでお送りします。' : 'リンクの有効期限は1時間です。'
+    ? `<a class="btn" href="${redeemUrl}" data-redeem>アプリで有効にする</a>
+       <p class="small" style="margin:0">アプリを入れてから押してください。${
+         stale ? 'リンクの有効期限（1時間）が過ぎていたら、アプリから新しいリンクをメールでお送りします。' : 'リンクの有効期限は1時間です。'
        }</p>`
-    : '<p class="small" style="margin:0">お申し込み時のメールにある「アプリで有効にする」のリンクを、アプリを入れたスマートフォンで開いてください。</p>';
+    : '<p class="small" style="margin:0">お申し込み時のメールにある「アプリで有効にする」を、アプリを入れたスマートフォンで開いてください。</p>';
 
   root.innerHTML = `
+    <div class="topbar"></div>
     <section class="screen">
-      <div class="hero"><img class="mascot" src="/mascot.svg" alt="" style="width:130px;height:130px"></div>
-      <h1 style="text-align:center">お申し込み<br>ありがとうございます！</h1>
-      <p class="muted" style="text-align:center">あと2ステップで、家系図づくりをはじめられます。</p>
+      <img class="pop" src="/mascot.svg" alt="" style="width:104px;height:104px;margin:0 auto">
+      <h1 style="text-align:center">お申し込み<br>ありがとうございます</h1>
+      <p class="lead" style="text-align:center">あと2ステップで、家系図づくりをはじめられます。</p>
       ${
         mobile
-          ? `<ol class="steps">
-              <li><div style="flex:1"><h3>アプリをダウンロード</h3><div style="margin-top:10px;display:grid;gap:12px">${storeButtons(config)}</div></div></li>
-              <li><div style="flex:1"><h3>このページに戻って、プランを有効にする</h3><div style="margin-top:10px">${redeemStep}</div></div></li>
+          ? `<ol class="timeline">
+              <li><span class="dot">${icon('phone')}</span><div><h3>アプリをダウンロード</h3><div class="action">${storeButtons(config)}</div></div></li>
+              <li><span class="dot">${icon('unlock')}</span><div><h3>このページに戻って、プランを有効に</h3><div class="action">${redeemStep}</div></div></li>
             </ol>`
-          : `<div class="card">
+          : `<div class="stat-card" style="margin-bottom:20px">
               <h3>スマートフォンで続けてください</h3>
-              <p class="small" style="margin:8px 0 0">家系図クエストはスマートフォンのアプリです。</p>
-              <ol class="steps">
-                <li><span>スマートフォンに「家系図クエスト」をダウンロード</span></li>
-                <li><span>お申し込み時のメールをスマートフォンで開き、「アプリで有効にする」をタップ</span></li>
+              <p class="small" style="margin:4px 0 16px">家系図クエストはスマートフォンのアプリです。</p>
+              <ol class="timeline" style="margin:0">
+                <li><span class="dot">${icon('phone')}</span><div><h3>アプリをダウンロード</h3><p>スマートフォンで「家系図クエスト」を入れます</p></div></li>
+                <li><span class="dot">${icon('unlock')}</span><div><h3>プランを有効に</h3><p>お申し込み時のメールをスマートフォンで開き、「アプリで有効にする」をタップ</p></div></li>
               </ol>
-              <div style="display:grid;gap:12px">${storeButtons(config)}</div>
+              <div class="action" style="display:grid;gap:10px;margin-top:16px">${storeButtons(config)}</div>
             </div>`
       }
-      <div class="card" style="margin-top:16px">
-        <h3>うまくいかないときは</h3>
-        <p class="small" style="margin:8px 0 0">・「アプリで有効にする」はアプリを入れたあとに押してください<br>
-        ・有効期限が切れたリンクを押すと、アプリから新しいリンクがメールで届きます<br>
-        ・領収書と、解約・支払い方法の変更ページはメールでお送りしています</p>
-      </div>
+      <div class="section-title">うまくいかないときは</div>
+      <details><summary>「アプリで有効にする」を押しても何も起きない</summary><p>アプリを入れたあとに押してください。アプリを入れる前に押した場合は、入れてからもう一度このページを開いてください。</p></details>
+      <details><summary>リンクの有効期限が切れた</summary><p>期限切れのリンクを押すと、アプリから新しいリンクがお申し込み時のメールアドレスに届きます。</p></details>
+      <details><summary>領収書や解約はどこから？</summary><p>お申し込み時のメールに、領収書と管理ページ（解約・支払い方法の変更）のリンクがあります。</p></details>
       ${legalFooter()}
     </section>`;
 }
