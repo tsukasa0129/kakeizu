@@ -192,7 +192,7 @@ npx wrangler login # 初回のみ（CI では CLOUDFLARE_API_TOKEN を設定）
 npm run deploy     # https://kakeizu-quest.app と https://kakeizu-funnel.tsukasa240129.workers.dev
 ```
 
-ドメイン `kakeizu-quest.app` は Cloudflare Registrar で取得済み（2026-10-01、自動更新はオフ。更新は $14.20/年。ダッシュボードの Domain Registration で自動更新をオンにしてください）。
+ドメイン `kakeizu-quest.app` は Cloudflare Registrar で取得済み（2026-10-01）。自動更新はオンで、有効期限（2027-10-01）の前に $14.20/年 で自動更新されます（Cloudflare に登録した支払い方法に請求）。
 `wrangler.jsonc` の `routes`（`custom_domain: true`）で Worker に紐付けており、DNS と証明書は Cloudflare が自動で設定します。
 
 ページは Workers Static Assets ではなく Worker に同梱して配信しています（約70KB）。静的アセットのアップロードを通せない環境からでも `wrangler deploy` だけで公開できるようにするためです。
