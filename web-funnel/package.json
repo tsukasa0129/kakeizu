@@ -2,9 +2,10 @@
   "name": "kakeizu-funnel",
   "private": true,
   "scripts": {
-    "dev": "wrangler dev",
-    "deploy": "wrangler deploy",
-    "typecheck": "wrangler types && tsc --noEmit",
+    "embed": "node scripts/embed.mjs",
+    "dev": "npm run embed && wrangler dev",
+    "deploy": "npm run embed && wrangler deploy",
+    "typecheck": "npm run embed && wrangler types && tsc --noEmit",
     "types": "wrangler types"
   },
   "devDependencies": {

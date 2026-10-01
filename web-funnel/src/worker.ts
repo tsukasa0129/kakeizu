@@ -1,7 +1,25 @@
-// web2app funnel: static pages in ./public are served by Workers Static Assets before this script runs.
-// Only paths without a matching file reach here:
+// web2app funnel. The pages in ./public are bundled into src/site.gen.ts (npm run embed) and served here,
+// plus a few dynamic paths:
 //   /checkout?plan=annual|monthly → RevenueCat Web Purchase Link (Stripe checkout), package preselected
 //   /app                           → App Store / Google Play, picked from the user agent
+
+import { SITE } from './site.gen';
+
+/** Pretty URLs: / → index.html, /success → success.html. Unknown paths get 404.html. */
+function serveSite(pathname: string): Response {
+  const path = pathname === '/' ? '/index.html' : SITE[pathname] ? pathname : `${pathname.replace(/\/$/, '')}.html`;
+  const file = SITE[path];
+  const found = file ?? SITE['/404.html'];
+  const body = found.base64 ? Uint8Array.from(atob(found.base64), (c) => c.charCodeAt(0)) : found.text;
+  return new Response(body, {
+    status: file ? 200 : 404,
+    headers: {
+      'content-type': found.type,
+      // Pages revalidate so copy changes show up at once; scripts, styles and images can be cached briefly.
+      'cache-control': found.type.startsWith('text/html') ? 'public, max-age=0, must-revalidate' : 'public, max-age=3600',
+    },
+  });
+}
 
 const PACKAGES: Record<string, string> = {
   annual: '$rc_annual',
@@ -45,7 +63,7 @@ export default {
           { headers: { 'cache-control': 'public, max-age=300' } },
         );
       default:
-        return env.ASSETS.fetch(request);
+        return serveSite(url.pathname);
     }
   },
 } satisfies ExportedHandler<Env>;
