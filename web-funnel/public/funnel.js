@@ -34,10 +34,10 @@ const FIRST_STEP = {
 const GEN_NAMES = ['あなた', '父母', '祖父母', '曾祖父母', '高祖父母', '5代前'];
 const CALC_ITEMS = ['さかのぼる世代', '必要な戸籍の種類', '請求先の役所', '学習パス'];
 const FEATURES = [
-  ['AIで戸籍を読み取り', '撮るだけで人物・続柄・日付を読み取り、家系図に自動で配置（無制限）'],
-  ['5代前まで広がる家系図', 'あなた → 父母 → 祖父母 → 曾祖父母 → 高祖父母 …'],
-  ['役所ナビ', '本籍地の調べ方から、次に請求する戸籍までチェックリストで案内'],
-  ['ゲーム感覚で続く', 'レッスン・連続記録・クエストで、少しずつ空欄が埋まる'],
+  ['scroll', 'AIで戸籍を読み取り', '撮るだけで人物・続柄・日付を読み取り、家系図に自動で配置（無制限）'],
+  ['tree', '5代前まで広がる家系図', 'あなた → 父母 → 祖父母 → 曾祖父母 → 高祖父母 …'],
+  ['office', '役所ナビ', '本籍地の調べ方から、次に請求する戸籍までチェックリストで案内'],
+  ['spark', 'ゲーム感覚で続く', 'レッスン・連続記録・クエストで、少しずつ空欄が埋まる'],
 ];
 
 const STEPS = ['landing', 'hook', 'motive', 'target', 'knowledge', 'experience', 'insight', 'compare', 'calc', 'plan', 'paywall'];
@@ -61,20 +61,20 @@ for (const key of ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_
 store.set('utm', utm);
 
 function says(text) {
-  return `<div class="says"><img src="/mascot.svg" alt=""><div class="bubble">${text}</div></div>`;
+  return `<div class="says"><img src="/mascot.svg" alt=""><h1>${text}</h1></div>`;
 }
 
 function progress(step) {
   const i = STEPS.indexOf(step);
   const pct = Math.round((i / (STEPS.length - 2)) * 100);
-  return `<div class="topbar"><button class="back" data-back aria-label="戻る">‹</button><div class="progress"><i style="width:${pct}%"></i></div></div>`;
+  return `<div class="topbar"><button class="back" data-back aria-label="戻る">${icon('back')}</button><div class="progress"><i style="width:${pct}%"></i></div></div>`;
 }
 
 function options(key, items) {
   return `<div class="options">${items
     .map(
-      (item, i) => `<button class="option${answers[key] === item.value ? ' selected' : ''}" style="animation-delay:${i * 60}ms" data-answer="${key}" data-value="${item.value}">
-        <span>${item.label}${item.sub ? `<small>${item.sub}</small>` : ''}</span>
+      (item, i) => `<button class="option${answers[key] === item.value ? ' selected' : ''}" style="animation-delay:${i * 40}ms" data-answer="${key}" data-value="${item.value}">
+        <span>${item.label}${item.sub ? `<small>${item.sub}</small>` : ''}</span><span class="tick">${icon('check', 14)}</span>
       </button>`,
     )
     .join('')}</div>`;
@@ -87,8 +87,8 @@ const screens = {
       <span class="badge">1分でわかる 無料診断</span>
       <h1>戸籍を撮るだけで、<br><span class="accent">ご先祖さまの家系図</span>に。</h1>
       <p class="muted">あなたが会えるご先祖さまの人数と、<br>戸籍をさかのぼるプランを診断します。</p>
-      <div class="card" style="text-align:left">
-        ${FEATURES.slice(0, 3).map(([t, d]) => `<div class="feature"><div class="icon">${check()}</div><div><h3>${t}</h3><p class="small" style="margin:0">${d}</p></div></div>`).join('')}
+      <div class="features" style="text-align:left">
+        ${FEATURES.slice(0, 3).map(([ic, t, d]) => `<div class="feature"><span class="ic">${icon(ic)}</span><div><h3>${t}</h3><p>${d}</p></div></div>`).join('')}
       </div>
       <div class="grow"></div>
       <div class="bottom">
@@ -101,10 +101,12 @@ const screens = {
   hook: () => `
     ${progress('hook')}
     <section class="screen center">
-      <p class="muted" style="font-weight:700">10代さかのぼると、ご先祖さまは</p>
-      <div class="big-number" data-count="1024">0</div>
-      <p style="font-weight:800;font-size:20px">人</p>
-      <p class="muted">戸籍をたどれば、江戸時代生まれのご先祖さまに<br>出会えることもあります。</p>
+      <div class="grow"></div>
+      <div class="stat-card">
+        <p class="muted" style="font-weight:700;margin:0">10代さかのぼると、ご先祖さまは</p>
+        <div><span class="big-number" data-count="1024">0</span> <b>人</b></div>
+        <p class="small" style="margin:8px 0 0">戸籍をたどれば、江戸時代生まれのご先祖さまに<br>出会えることもあります。</p>
+      </div>
       <div class="grow"></div>
       <div class="bottom"><button class="btn" data-next>つぎへ</button></div>
     </section>`,
@@ -144,7 +146,8 @@ const screens = {
     ${progress('insight')}
     <section class="screen">
       ${says(`${targetLabel()}だと、会えるご先祖さまは…`)}
-      <div style="text-align:center"><span class="big-number" data-count="${ancestorsUpTo(gen)}">0</span><b style="font-size:20px"> 人</b></div>
+      <div class="stat-card">
+      <div><span class="big-number" data-count="${ancestorsUpTo(gen)}">0</span> <b>人</b></div>
       <div class="bars">
         ${rows
           .map(
@@ -152,7 +155,8 @@ const screens = {
           )
           .join('')}
       </div>
-      <p class="muted">${answers.knowledge === 'all' ? '祖父母のお名前を言えるのは、すばらしいことです。' : 'お名前がわからなくても大丈夫。'}${
+      </div>
+      <p class="muted" style="margin-top:16px">${answers.knowledge === 'all' ? '祖父母のお名前を言えるのは、すばらしいことです。' : 'お名前がわからなくても大丈夫。'}${
         gen >= 3 ? '曾祖父母より前の方々は、戸籍を取るとお名前がわかります。' : '戸籍を取ると、生年月日や出身地までわかります。'
       }</p>
       <div class="grow"></div>
@@ -165,10 +169,15 @@ const screens = {
     <section class="screen">
       ${says('ひとりでやるのと、なにがちがうの？')}
       <div class="compare">
-        <div class="card"><h3>ひとりで</h3><ul class="muted">
-          <li>・どの役所に請求するか調べる</li><li>・古い手書きの戸籍を読み解く</li><li>・図を手で書き起こす</li><li>・途中で止まりがち</li></ul></div>
-        <div class="card us"><h3 class="accent">家系図クエスト</h3><ul>
-          <li>・役所ナビが次の請求先を案内</li><li>・撮るだけでAIが読み取り</li><li>・家系図に自動で配置</li><li>・ゲーム感覚で続く</li></ul></div>
+        <div class="row head"><div>ひとりで</div><div>家系図クエスト</div></div>
+        ${[
+          ['どの役所に請求するか調べる', '役所ナビが次の請求先を案内'],
+          ['古い手書きの戸籍を読み解く', '撮るだけでAIが読み取り'],
+          ['図を手で書き起こす', '家系図に自動で配置'],
+          ['途中で止まりがち', 'ゲーム感覚で続く'],
+        ]
+          .map(([alone, us]) => `<div class="row"><div><span class="no">${icon('dash', 16)}</span>${alone}</div><div><span class="yes">${icon('check', 16)}</span>${us}</div></div>`)
+          .join('')}
       </div>
       <div class="grow"></div>
       <div class="bottom"><button class="btn" data-next>わたしのプランをつくる</button></div>
@@ -177,20 +186,21 @@ const screens = {
   calc: () => `
     <div class="topbar"></div>
     <section class="screen center">
+      <div class="calc-pct" id="pct">0%</div>
       <h2>あなた専用のプランを<br>作成しています</h2>
-      <div class="calc-ring" id="ring"><span id="pct">0%</span></div>
-      <ul class="checklist">${CALC_ITEMS.map((c) => `<li>${c}</li>`).join('')}</ul>
+      <div class="calc-bar"><i id="calcbar"></i></div>
+      <ul class="checklist">${CALC_ITEMS.map((c) => `<li><span class="tick">${icon('check', 14)}</span>${c}</li>`).join('')}</ul>
     </section>`,
 
   plan: () => `
     <div class="topbar"></div>
     <section class="screen">
-      <div style="text-align:center"><img src="/mascot.svg" alt="" style="width:110px;height:110px"></div>
-      <h2 style="text-align:center">あなた専用プランが<br>できました！</h2>
-      <div class="card plan-summary">
-        <div class="row"><span class="muted">ゴール</span><b>${targetLabel()}</b></div>
-        <div class="row"><span class="muted">会えるご先祖さま</span><b>${ancestorsUpTo(targetGen())}人</b></div>
-        <div class="row"><span class="muted">最初の一歩</span><b>${FIRST_STEP[answers.experience] ?? FIRST_STEP.unknown}</b></div>
+      <img class="pop" src="/mascot.svg" alt="" style="width:104px;height:104px;margin:0 auto">
+      <h1 style="text-align:center">あなた専用プランが<br>できました！</h1>
+      <div class="summary">
+        <div class="cell"><div class="label">ゴール</div><div class="value">${targetLabel()}</div></div>
+        <div class="cell"><div class="label">会えるご先祖さま</div><div class="value num">${ancestorsUpTo(targetGen())}人</div></div>
+        <div class="cell wide"><span class="ic">${icon('scroll')}</span><div><div class="label">最初の一歩</div><div class="value">${FIRST_STEP[answers.experience] ?? FIRST_STEP.unknown}</div></div></div>
       </div>
       <p class="small" style="margin-top:12px">完成した家系図は、本にして残すこともできます（製本は別料金）。</p>
       <div class="grow"></div>
@@ -200,26 +210,24 @@ const screens = {
   paywall: () => {
     const unavailable = params.get('checkout') === 'unavailable';
     return `
-    <div class="topbar"><button class="back" data-back aria-label="戻る">‹</button></div>
-    <section class="screen">
-      <h2>${targetLabel()}の家系図を、<br>今日からはじめよう</h2>
-      <div class="card">
-        ${FEATURES.map(([t, d]) => `<div class="feature"><div class="icon">${check()}</div><div><h3>${t}</h3><p class="small" style="margin:0">${d}</p></div></div>`).join('')}
+    <div class="topbar"><button class="back" data-back aria-label="戻る">${icon('back')}</button></div>
+    <section class="screen paywall">
+      <h1>${targetLabel()}の家系図を、<br>今日からはじめよう</h1>
+      <div class="features">
+        ${FEATURES.map(([ic, t, d]) => `<div class="feature"><span class="ic">${icon(ic)}</span><div><h3>${t}</h3><p>${d}</p></div></div>`).join('')}
       </div>
       <div class="plans" role="radiogroup" aria-label="プラン">
-        ${planCard('annual', `<span class="ribbon">${SAVINGS}%おトク</span>`)}
+        ${planCard('annual', `<span class="plan-badge">${SAVINGS}%おトク</span>`)}
         ${planCard('monthly', '')}
       </div>
       ${unavailable ? '<div class="notice">ただいまお申し込みを受け付けていません。時間をおいてお試しください。</div>' : ''}
-      <div class="card">
-        <h3>お申し込みのあと</h3>
-        <ol class="steps">
-          <li><span>クレジットカードでお支払い（Stripe の安全な決済ページ）</span></li>
-          <li><span>アプリ「家系図クエスト」をダウンロード</span></li>
-          <li><span>完了ページの「アプリで有効にする」をタップ。そのまま使いはじめられます</span></li>
-        </ol>
-      </div>
-      <div style="margin-top:12px">
+      <div class="section-title">お申し込みのあと</div>
+      <ol class="timeline">
+        <li><span class="dot num">1</span><div><p>クレジットカードでお支払い（Stripe の安全な決済ページ）</p></div></li>
+        <li><span class="dot num">2</span><div><p>アプリ「家系図クエスト」をダウンロード</p></div></li>
+        <li><span class="dot num">3</span><div><p>完了ページの「アプリで有効にする」をタップ。そのまま使いはじめられます</p></div></li>
+      </ol>
+      <div>
         <details><summary>iPhone と Android のどちらで使えますか？</summary><p>どちらでも使えます。Web でお申し込みいただいたプランを、アプリで有効にしてご利用ください。</p></details>
         <details><summary>解約はいつでもできますか？</summary><p>はい。お申し込み時のメールにある管理ページ、またはアプリの「プロフィール → サブスクリプションを管理」からいつでも解約できます。次回更新日までは引き続きご利用いただけます。</p></details>
         <details><summary>戸籍の画像は保存されますか？</summary><p>読み取りのためにメモリ上で処理するだけで、画像は保存しません。</p></details>
@@ -227,7 +235,7 @@ const screens = {
       </div>
       <div class="bottom">
         <button class="btn" data-checkout>${PRICES[plan].label}ではじめる</button>
-        <p class="small" style="margin:0;text-align:center">${PRICES[plan].price}/${PRICES[plan].per}・自動更新。いつでも解約できます。</p>
+        <p class="small num" style="margin:0;text-align:center">${PRICES[plan].price}/${PRICES[plan].per}・自動更新。いつでも解約できます。</p>
       </div>
       ${legalFooter()}
     </section>`;
@@ -237,13 +245,10 @@ const screens = {
 function planCard(id, extra) {
   const p = PRICES[id];
   return `<button class="plan${plan === id ? ' selected' : ''}" role="radio" aria-checked="${plan === id}" data-plan="${id}">
-    ${extra}<span class="radio"></span><span class="name">${p.label}</span>
-    <span class="price">${p.price}/${p.per}${p.monthly ? `<small>月あたり${p.monthly}</small>` : ''}</span>
+    ${extra}<span class="tick">${icon('check', 12)}</span><span class="name">${p.label}</span>
+    <span class="price">${p.price}<small>/${p.per}</small></span>
+    <span class="sub">${p.monthly ? `月あたり${p.monthly}` : '&nbsp;'}</span>
   </button>`;
-}
-
-function check() {
-  return '<svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#58CC02"/><path d="M7 12.5l3.2 3.2L17 9" stroke="#fff" stroke-width="2.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 }
 
 // ---- navigation (browser back works through history.state) ----
@@ -333,7 +338,7 @@ function countUp(el, to, ms) {
 }
 
 function runCalc(reduced) {
-  const ring = document.getElementById('ring');
+  const bar = document.getElementById('calcbar');
   const pct = document.getElementById('pct');
   const items = root.querySelectorAll('.checklist li');
   const total = reduced ? 600 : 3200;
@@ -342,7 +347,7 @@ function runCalc(reduced) {
     if (current !== 'calc') return;
     const t = Math.min(1, (now - start) / total);
     const p = Math.round(t * 100);
-    ring.style.setProperty('--p', p);
+    bar.style.width = `${p}%`;
     pct.textContent = `${p}%`;
     items.forEach((li, i) => li.classList.toggle('done', p >= ((i + 1) / items.length) * 100 - 5));
     if (t < 1) requestAnimationFrame(tick);
