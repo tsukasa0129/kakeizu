@@ -147,7 +147,7 @@ RevenueCat プロジェクト「家系図クエスト」は設定済みです（
 
 無料プランはありません。プレミアム（サブスクリプション）で、AI 読み取り無制限・5代前までの家系図・全ユニットが使えます。
 
-### web2app ファネル（`web-funnel/`・Cloudflare Workers）
+### web2app ファネル（`web-funnel/`・Cloudflare Workers・https://kakeizu-quest.app ）
 
 広告から Web に来た人を **Web で診断 → Web で購入（Stripe）→ アプリをダウンロード → アプリで有効化** まで運ぶファネルです。
 Web で決済するので App Store / Google Play の手数料がかからず、広告の計測もしやすくなります。
@@ -162,7 +162,7 @@ Web で決済するので App Store / Google Play の手数料がかからず、
 | --- | --- |
 | `web-funnel/public/index.html` + `funnel.js` | LP・診断・プラン・ペイウォール（アプリのオンボーディングと同じ流れ・同じ見た目。まめたも同じ絵）。回答と UTM は localStorage に保存 |
 | `web-funnel/public/success.html` + `success.js` | 購入後のページ。スマホならストアへのボタンと「アプリで有効にする」、PC なら「スマホでメールを開いて」と案内 |
-| `web-funnel/src/worker.ts` | `/checkout`（Web Purchase Link に `package_id` と UTM を付けてリダイレクト）、`/app`（端末に合わせて App Store / Google Play へ）、`/config.json` |
+| `web-funnel/src/worker.ts` | `public/` のページを配信（`scripts/embed.mjs` が deploy / dev の前に `src/site.gen.ts` へ取り込む）、`/checkout`（Web Purchase Link に `package_id` と UTM を付けてリダイレクト）、`/app`（端末に合わせて App Store / Google Play へ）、`/config.json` |
 | `src/app/redeem_web_purchase.tsx` | アプリ側。Redemption Link（`rc-xxxx://redeem_web_purchase?redemption_token=…`）を受け取り `Purchases.redeemWebPurchase` で購入を引き継ぐ。オンボーディング前でも開けるよう `_layout.tsx` のガードの外に置いている。成功したら質問をスキップしてアプリへ（Web で回答済みのため）。期限切れのときは RevenueCat が新しいリンクをメールで送る |
 
 計測: `funnel.js` / `success.js` は `funnel_view` / `funnel_step` / `quiz_answer` / `checkout_start` / `purchase_complete` / `app_store_click` / `redeem_click` を
@@ -189,10 +189,13 @@ npm install
 npm run dev        # http://localhost:8787 （--var WEB_PURCHASE_LINK:https://pay.rev.cat/… で上書き可）
 npm run typecheck
 npx wrangler login # 初回のみ（CI では CLOUDFLARE_API_TOKEN を設定）
-npm run deploy     # https://kakeizu-funnel.<アカウント>.workers.dev
+npm run deploy     # https://kakeizu-quest.app と https://kakeizu-funnel.tsukasa240129.workers.dev
 ```
 
-独自ドメインは Cloudflare ダッシュボードの Workers → kakeizu-funnel → Settings → Domains & Routes で追加します。
+ドメイン `kakeizu-quest.app` は Cloudflare Registrar で取得済み（2026-10-01、自動更新はオフ。更新は $14.20/年。ダッシュボードの Domain Registration で自動更新をオンにしてください）。
+`wrangler.jsonc` の `routes`（`custom_domain: true`）で Worker に紐付けており、DNS と証明書は Cloudflare が自動で設定します。
+
+ページは Workers Static Assets ではなく Worker に同梱して配信しています（約70KB）。静的アセットのアップロードを通せない環境からでも `wrangler deploy` だけで公開できるようにするためです。
 
 注意:
 - `WEB_PURCHASE_LINK` が空のあいだは、購入ボタンを押すと「ただいまお申し込みを受け付けていません」と表示します

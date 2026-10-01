@@ -1,16 +1,13 @@
-// Cloudflare Workers（静的アセット）で配信する web2app ファネル。README の「web2app ファネル」を参照。
+// Cloudflare Workers で配信する web2app ファネル。README の「web2app ファネル」を参照。
+// public/ のファイルは deploy / dev の前に scripts/embed.mjs で src/site.gen.ts に取り込まれる。
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "kakeizu-funnel",
   "main": "src/worker.ts",
   "compatibility_date": "2026-09-01",
-  "assets": {
-    "directory": "./public",
-    "binding": "ASSETS",
-    "not_found_handling": "404-page",
-    // Without this, browser navigations to these paths get the 404 page instead of reaching the Worker.
-    "run_worker_first": ["/checkout", "/app", "/config.json"]
-  },
+  "workers_dev": true,
+  // Cloudflare Registrar で取得したドメイン。デプロイ時に DNS と証明書が自動で設定される。
+  "routes": [{ "pattern": "kakeizu-quest.app", "custom_domain": true }],
   "observability": { "enabled": true },
   "vars": {
     // RevenueCat → Web → Web Purchase Links で `default` オファリングに作ったリンク（例: https://pay.rev.cat/xxxx）。
