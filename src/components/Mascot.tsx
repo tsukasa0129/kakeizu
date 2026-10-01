@@ -1,31 +1,31 @@
 import { useEffect, useState } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
-import Svg, { Circle, Ellipse, G, Path, Rect } from 'react-native-svg';
+import Svg, { Circle, Ellipse, G, Path } from 'react-native-svg';
 
 import { PopIn, useLoop, useReducedMotion } from '@/components/Motion';
 import { colors } from '@/theme';
 
 type Mood = 'happy' | 'wow' | 'think';
 
-const OL = '#3E2A1E'; // character outline
-const FUR = '#C98B57';
-const FUR_LIGHT = '#DDA676';
-const DARK = '#5C3D29'; // ears, paws, tail stripes
-const PATCH = '#7D5438'; // tanuki eye mask
-const CREAM = '#FFF2DF';
-const EYE = '#21160F';
-const MOUTH = '#C8384A';
-const TONGUE = '#FF9AAE';
+const FUR = '#EBA466';
+const FUR_SHADE = '#D98C4C';
+const CREAM = '#FFF3E2';
+const MASK = '#9C5F38'; // tanuki eye mask
+const DARK = '#5B3A26'; // ears, paws, tail stripes
+const INK = '#2B1C13';
+const BLUSH = '#FF9FB2';
 const LEAF = '#58CC02';
-const LEAF_DARK = '#3E9A00';
-const PAPER = '#FFFBF1';
-const ROLL = '#E5484D';
-const SW = 3; // outline width
+const LEAF_DARK = '#3F9A00';
+const MOUTH = '#D9475B';
+const TONGUE = '#FF9AAE';
+const SPARKLE = '#FFC800';
 
 /**
  * 「まめた」: a little mame-danuki (bean tanuki) who guides the user through their family history.
- * Tanuki shape-shift with a leaf on the head, which doubles as the family-tree leaf; it hugs a
- * koseki scroll. Big head, thick outlines and huge sparkly eyes, drawn like a mascot character.
+ * Drawn the way the best-loved app mascots are (Duolingo's Duo, Catzy, Manna's lamb on Appllama):
+ * one soft blob for head and body, no outlines, flat fills with a single shade, big glossy eyes set
+ * low on the face, and a tiny mouth. The tanuki shows in the eye mask, round ears and striped tail;
+ * the shape-shifting leaf on its head doubles as the family-tree leaf.
  */
 export function Mascot({
   size = 120,
@@ -47,51 +47,43 @@ export function Mascot({
   return (
     <Animated.View style={animate ? { transform: [{ translateY }, { rotate }] } : undefined}>
       <Svg width={size} height={size} viewBox="0 0 120 120">
-        {/* big fluffy striped tail */}
-        <Path
-          d="M80 104 Q113 100 112 72 Q109 58 98 62 Q90 66 92 80 Q92 92 76 94 Z"
-          fill={FUR}
-          stroke={OL}
-          strokeWidth={SW}
-          strokeLinejoin="round"
-        />
-        <Path d="M96 64.5 Q104 60 109 66 L108.5 71 Q102 66 95 70 Z" fill={DARK} />
-        <Path d="M92.5 80 Q102 78 111 82 L109.5 88 Q101 84 91.5 86.5 Z" fill={DARK} />
+        <Ellipse cx="60" cy="113" rx="30" ry="4.5" fill="#000" opacity={0.08} />
 
-        {/* round body with a cream belly */}
-        <Ellipse cx="60" cy="98" rx="30" ry="21" fill={FUR} stroke={OL} strokeWidth={SW} />
-        <Ellipse cx="60" cy="102" rx="19" ry="14" fill={CREAM} />
-        {/* paws */}
-        <Ellipse cx="46" cy="117" rx="8.5" ry="3.8" fill={DARK} stroke={OL} strokeWidth={2.4} />
-        <Ellipse cx="74" cy="117" rx="8.5" ry="3.8" fill={DARK} stroke={OL} strokeWidth={2.4} />
-
-        {/* koseki scroll hugged in front */}
-        <Rect x="43" y="93" width="34" height="11" rx="2" fill={PAPER} stroke={OL} strokeWidth={2.4} />
-        <Path d="M55 96.5 H65 M56 100.5 H64" stroke="#B9A98F" strokeWidth={1.6} strokeLinecap="round" />
-        <Rect x="39" y="91" width="6" height="15" rx="3" fill={ROLL} stroke={OL} strokeWidth={2.2} />
-        <Rect x="75" y="91" width="6" height="15" rx="3" fill={ROLL} stroke={OL} strokeWidth={2.2} />
-        {/* stubby arms holding it */}
-        <Ellipse cx="49" cy="100" rx="5.5" ry="5" fill={DARK} stroke={OL} strokeWidth={2.6} />
-        <Ellipse cx="71" cy="100" rx="5.5" ry="5" fill={DARK} stroke={OL} strokeWidth={2.6} />
+        {/* striped tail */}
+        <Path d="M84 100 C100 102 112 92 110 78 C109 70 101 69 98 75 C96 80 99 86 92 90 C88 92 84 92 82 92 Z" fill={FUR} />
+        <Path d="M101 72.5 C105 70 109 72.5 110 77 L103.5 79 C102.5 76.5 100.5 75.5 98.6 76 Z" fill={DARK} />
+        <Path d="M97.4 82.5 L105.5 86 C104 89 101.5 91.5 98.5 93 L94 88 C96 86.6 97 84.8 97.4 82.5 Z" fill={DARK} />
 
         {/* round ears */}
-        <Circle cx="30" cy="27" r="11" fill={FUR} stroke={OL} strokeWidth={SW} />
-        <Circle cx="90" cy="27" r="11" fill={FUR} stroke={OL} strokeWidth={SW} />
-        <Circle cx="30.5" cy="28" r="6" fill={DARK} />
-        <Circle cx="89.5" cy="28" r="6" fill={DARK} />
+        <Circle cx="34" cy="31" r="12.5" fill={FUR} />
+        <Circle cx="86" cy="31" r="12.5" fill={FUR} />
+        <Circle cx="34.5" cy="32" r="7" fill={DARK} />
+        <Circle cx="85.5" cy="32" r="7" fill={DARK} />
 
-        {/* big round head */}
-        <Ellipse cx="60" cy="53" rx="37" ry="31" fill={FUR} stroke={OL} strokeWidth={SW} />
-        <Path d="M42 28 Q60 22 78 28" stroke={FUR_LIGHT} strokeWidth={3} fill="none" strokeLinecap="round" />
-        {/* cream muzzle and cheeks */}
-        <Path d="M30 64 Q34 50 48 56 Q60 52 72 56 Q86 50 90 64 Q86 82 60 82 Q34 82 30 64 Z" fill={CREAM} />
-
-        {/* the transformation leaf, also the family-tree leaf */}
-        <Path d="M58 25 Q44 16 50 3 Q66 6 61 24 Z" fill={LEAF} stroke={OL} strokeWidth={2.6} strokeLinejoin="round" />
-        <Path d="M59.5 23 Q54 14 51.5 6" stroke={LEAF_DARK} strokeWidth={1.6} fill="none" strokeLinecap="round" />
-        <Path d="M59 25 Q62 20 66 19" stroke={OL} strokeWidth={2} fill="none" strokeLinecap="round" />
+        {/* head and body in one soft blob, with one shade on the right */}
+        <Path d="M60 21 C90 21 102 41 102 66 C102 92 85 109 60 109 C35 109 18 92 18 66 C18 41 30 21 60 21 Z" fill={FUR} />
+        <Path
+          d="M96 46 C100.5 54 102 61 102 66 C102 92 85 109 60 109 C77 103 91 89 93 68 C94 60 95.5 52 96 46 Z"
+          fill={FUR_SHADE}
+          opacity={0.7}
+        />
+        <Ellipse cx="60" cy="98" rx="16" ry="8.5" fill={CREAM} />
+        <Ellipse cx="46" cy="108" rx="8" ry="4" fill={DARK} />
+        <Ellipse cx="74" cy="108" rx="8" ry="4" fill={DARK} />
 
         <Face mood={mood} blinking={blinking} />
+
+        {/* the transformation leaf, also the family-tree leaf */}
+        <Path d="M60 22 C56 16 52 9 55 3 C63 4 66 12 61.5 21.5 Z" fill={LEAF} />
+        <Path d="M60.6 20 C58.5 15 57 10 56 6" stroke={LEAF_DARK} strokeWidth={1.4} fill="none" strokeLinecap="round" />
+
+        {mood === 'think' && <Path d="M99 36 Q103 43 99 46 Q95 43 99 36 Z" fill="#8ED3FF" />}
+        {mood === 'wow' && (
+          <G>
+            <Path d="M22 26 l1.6 -4 l1.6 4 l4 1.6 l-4 1.6 l-1.6 4 l-1.6 -4 l-4 -1.6 Z" fill={SPARKLE} />
+            <Path d="M98 18 l1.2 -3 l1.2 3 l3 1.2 l-3 1.2 l-1.2 3 l-1.2 -3 l-3 -1.2 Z" fill={SPARKLE} />
+          </G>
+        )}
       </Svg>
     </Animated.View>
   );
@@ -100,66 +92,51 @@ export function Mascot({
 function Face({ mood, blinking }: { mood: Mood; blinking: boolean }) {
   return (
     <G>
-      {/* tanuki eye mask */}
-      <Ellipse cx="44" cy="55" rx="12.5" ry="10.5" fill={PATCH} transform="rotate(-18 44 55)" />
-      <Ellipse cx="76" cy="55" rx="12.5" ry="10.5" fill={PATCH} transform="rotate(18 76 55)" />
+      {/* tanuki eye mask and cream muzzle */}
+      <Ellipse cx="43" cy="60" rx="14" ry="12" fill={MASK} transform="rotate(-14 43 60)" />
+      <Ellipse cx="77" cy="60" rx="14" ry="12" fill={MASK} transform="rotate(14 77 60)" />
+      <Ellipse cx="60" cy="75" rx="15" ry="11" fill={CREAM} />
 
-      {blinking ? <ClosedEyes /> : mood === 'think' ? <LookUpEyes /> : <SparkleEyes big={mood === 'wow'} />}
+      {blinking ? <ClosedEyes /> : <Eyes mood={mood} />}
 
-      {/* blush */}
-      <Ellipse cx="33" cy="70" rx="6.5" ry="4" fill="#FF8FA3" opacity={0.6} />
-      <Ellipse cx="87" cy="70" rx="6.5" ry="4" fill="#FF8FA3" opacity={0.6} />
-
-      {/* nose */}
-      <Path d="M55 62 Q60 59.5 65 62 Q63.5 66.5 60 67 Q56.5 66.5 55 62 Z" fill={EYE} />
-      <Ellipse cx="58.3" cy="62.3" rx="1.6" ry="0.9" fill="#fff" opacity={0.8} />
+      <Ellipse cx="31" cy="76" rx="5.5" ry="3.4" fill={BLUSH} opacity={0.75} />
+      <Ellipse cx="89" cy="76" rx="5.5" ry="3.4" fill={BLUSH} opacity={0.75} />
+      <Path d="M55.6 70 Q60 67.6 64.4 70 Q63.2 73.6 60 74.2 Q56.8 73.6 55.6 70 Z" fill={INK} />
 
       {mood === 'wow' ? (
         <G>
-          <Ellipse cx="60" cy="74" rx="4.8" ry="5.6" fill={MOUTH} stroke={OL} strokeWidth={2} />
-          <Ellipse cx="60" cy="76.5" rx="2.8" ry="1.9" fill={TONGUE} />
+          <Ellipse cx="60" cy="79" rx="4.2" ry="4.8" fill={MOUTH} />
+          <Ellipse cx="60" cy="81" rx="2.6" ry="1.8" fill={TONGUE} />
         </G>
       ) : mood === 'think' ? (
-        <G>
-          <Path d="M54 72 Q57 69.5 60 72 Q63 74.5 66 71.5" stroke={OL} strokeWidth={2.2} fill="none" strokeLinecap="round" />
-          <Path d="M94 40 Q98 47 94 50 Q90 47 94 40 Z" fill="#9ED8FF" stroke={OL} strokeWidth={1.6} />
-        </G>
+        <Path d="M55.5 78.5 Q58 77 60 78.5 Q62 80 64.5 78.5" stroke={INK} strokeWidth={2} fill="none" strokeLinecap="round" />
       ) : (
-        <G>
-          {/* open "ω" smile */}
-          <Path d="M52 69 Q56 76 60 70 Q64 76 68 69 Q66 79 60 79 Q54 79 52 69 Z" fill={MOUTH} stroke={OL} strokeWidth={2} strokeLinejoin="round" />
-          <Ellipse cx="60" cy="76" rx="3.2" ry="1.9" fill={TONGUE} />
-        </G>
+        <Path
+          d="M54.5 76.5 Q57.3 80.5 60 77 Q62.7 80.5 65.5 76.5"
+          stroke={INK}
+          strokeWidth={2}
+          fill="none"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
       )}
     </G>
   );
 }
 
-/** Huge glossy eyes; `big` adds star sparkles for surprise. */
-function SparkleEyes({ big }: { big: boolean }) {
+/** Big glossy eyes: white, a dark pupil and two highlights. `wow` widens them; `think` looks up. */
+function Eyes({ mood }: { mood: Mood }) {
+  const big = mood === 'wow';
+  const look = mood === 'think' ? { x: 1.8, y: -2.6 } : { x: 0, y: 1 };
+  const pupil = big ? 7.2 : 6.3;
   return (
     <G>
-      {[45, 75].map((cx) => (
+      {[44, 76].map((cx) => (
         <G key={cx}>
-          <Ellipse cx={cx} cy="56" rx={big ? 7.8 : 7} ry={big ? 9.2 : 8.4} fill={EYE} />
-          <Ellipse cx={cx} cy="59.5" rx={big ? 5.6 : 5} ry="3.8" fill="#8A5A36" opacity={0.9} />
-          <Circle cx={cx + 2.6} cy="52.2" r={big ? 3.6 : 3.2} fill="#fff" />
-          <Circle cx={cx - 2.6} cy="60" r="1.5" fill="#fff" />
-          {big && <Path d={`M${cx - 3.5} 53 l1 -2.6 l1 2.6 l2.6 1 l-2.6 1 l-1 2.6 l-1 -2.6 l-2.6 -1 Z`} fill="#fff" />}
-        </G>
-      ))}
-    </G>
-  );
-}
-
-function LookUpEyes() {
-  return (
-    <G>
-      {[45, 75].map((cx) => (
-        <G key={cx}>
-          <Ellipse cx={cx} cy="56" rx="7.2" ry="8.6" fill="#fff" stroke={OL} strokeWidth={1.8} />
-          <Ellipse cx={cx + 2} cy="52.5" rx="4.6" ry="5.4" fill={EYE} />
-          <Circle cx={cx + 3.6} cy="50.5" r="1.6" fill="#fff" />
+          <Ellipse cx={cx} cy="59" rx={big ? 9 : 8.2} ry={big ? 10.4 : 9.6} fill="#fff" />
+          <Ellipse cx={cx + look.x} cy={59 + look.y} rx={pupil} ry={pupil + 1.2} fill={INK} />
+          <Circle cx={cx + look.x + 2} cy={59 + look.y - 2.6} r={big ? 2.6 : 2.2} fill="#fff" />
+          <Circle cx={cx + look.x - 2} cy={59 + look.y + 2.4} r={1} fill="#fff" />
         </G>
       ))}
     </G>
@@ -170,8 +147,8 @@ function LookUpEyes() {
 function ClosedEyes() {
   return (
     <G>
-      <Path d="M38 58 Q45 50 52 58" stroke={CREAM} strokeWidth={3.4} fill="none" strokeLinecap="round" />
-      <Path d="M68 58 Q75 50 82 58" stroke={CREAM} strokeWidth={3.4} fill="none" strokeLinecap="round" />
+      <Path d="M38 60 Q44 54 50 60" stroke={INK} strokeWidth={3} fill="none" strokeLinecap="round" />
+      <Path d="M70 60 Q76 54 82 60" stroke={INK} strokeWidth={3} fill="none" strokeLinecap="round" />
     </G>
   );
 }
