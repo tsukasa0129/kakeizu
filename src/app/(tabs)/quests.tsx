@@ -31,7 +31,10 @@ export default function QuestsScreen() {
             <Text style={styles.streakLabel}>日連続で学習中！</Text>
             <Text style={styles.streakSub}>最長記録 {game.longestStreak}日</Text>
           </View>
-          <Icon name="flame" size={84} />
+          {/* White badge so the orange flame stays visible on the orange card. */}
+          <View style={styles.flameBadge}>
+            <Icon name="flame" size={60} />
+          </View>
         </View>
 
         <View style={styles.card}>
@@ -116,6 +119,14 @@ export default function QuestsScreen() {
 }
 
 const styles = StyleSheet.create({
+  flameBadge: {
+    width: 92,
+    height: 92,
+    borderRadius: 46,
+    backgroundColor: 'rgba(255, 255, 255, 0.92)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   container: { flex: 1, backgroundColor: colors.bg },
   streakHero: {
     backgroundColor: colors.orange,

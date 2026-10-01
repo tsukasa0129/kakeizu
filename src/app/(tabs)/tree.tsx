@@ -19,10 +19,14 @@ import { displayName, useFamily } from '@/store/family';
 import { colors, font, radius } from '@/theme';
 import type { Person } from '@/types/family';
 
-const BOX_W = 150;
+const BOX_W = 156;
 const BOX_H = 64;
-const COL_GAP = 36;
+const COL_GAP = 32;
 const ROW_H = 76;
+// Tree canvas after Ancestry's tree view (studied in Appllama): a warm off-white field that sets the
+// tree apart from the chrome, white person cards with an avatar, and quiet hairline connectors.
+const CANVAS = '#F7F4EE';
+const LINE = '#D5CFC4';
 
 /** Horizontal pedigree: you on the left, each generation one column to the right. */
 export default function TreeScreen() {
@@ -96,11 +100,11 @@ export default function TreeScreen() {
         </View>
       </View>
 
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 120 }}>
+      <ScrollView style={{ flex: 1, backgroundColor: CANVAS }} contentContainerStyle={{ paddingBottom: 120 }}>
         <ScrollView horizontal contentContainerStyle={{ padding: 16 }} showsHorizontalScrollIndicator={false}>
           <View style={{ width, height }}>
             <Svg width={width} height={height} style={StyleSheet.absoluteFill}>
-              <Path d={connectors} stroke={colors.border} strokeWidth={3} fill="none" />
+              <Path d={connectors} stroke={LINE} strokeWidth={2} fill="none" strokeLinejoin="round" />
             </Svg>
             {allSlots.map((slot) => {
               const p = pos(slot);
@@ -140,10 +144,13 @@ function PersonBox({
   onPress: () => void;
 }) {
   const accent = slot === 1 ? colors.green : slot % 2 === 0 ? colors.male : colors.female;
+  const tint = slot === 1 ? colors.greenLight : slot % 2 === 0 ? colors.blueLight : '#FFE3F3';
   if (!person) {
     return (
-      <Pressable onPress={onPress} style={[styles.box, styles.emptyBox, style]}>
-        <Ionicons name="add-circle" size={20} color={colors.locked} />
+      <Pressable onPress={onPress} style={({ pressed }) => [styles.box, styles.emptyBox, style, pressed && styles.pressed]}>
+        <View style={styles.addCircle}>
+          <Ionicons name="add" size={18} color={colors.textMuted} />
+        </View>
         <View style={{ flex: 1 }}>
           <Text style={styles.emptyLabel}>{relationLabel(slot)}</Text>
           <Text style={styles.emptyHint}>タップして入力</Text>
@@ -153,8 +160,10 @@ function PersonBox({
   }
   const years = [person.birthDateIso?.slice(0, 4), person.deathDateIso?.slice(0, 4)].filter(Boolean).join('–');
   return (
-    <Pressable onPress={onPress} style={[styles.box, { borderColor: accent }, style]}>
-      <View style={[styles.stripe, { backgroundColor: accent }]} />
+    <Pressable onPress={onPress} style={({ pressed }) => [styles.box, style, pressed && styles.pressed]}>
+      <View style={[styles.avatar, { backgroundColor: tint }]}>
+        <Ionicons name="person" size={20} color={accent} />
+      </View>
       <View style={{ flex: 1 }}>
         <Text style={styles.relation}>{relationLabel(slot)}</Text>
         <Text style={styles.name} numberOfLines={1}>
@@ -178,18 +187,25 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: BOX_W,
     height: BOX_H,
-    borderRadius: radius.sm,
-    borderWidth: 2,
-    borderBottomWidth: 4,
+    borderRadius: 14,
+    borderCurve: 'continuous',
     backgroundColor: '#fff',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    paddingRight: 8,
-    overflow: 'hidden',
+    gap: 10,
+    paddingHorizontal: 10,
+    boxShadow: '0 1px 3px rgba(60, 45, 30, 0.12)',
   },
-  emptyBox: { borderStyle: 'dashed', borderColor: colors.locked, borderBottomWidth: 2, paddingLeft: 8, backgroundColor: colors.surface },
-  stripe: { width: 6, alignSelf: 'stretch' },
+  emptyBox: {
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    borderColor: '#C9C2B6',
+    backgroundColor: 'rgba(255, 255, 255, 0.55)',
+    boxShadow: 'none',
+  },
+  pressed: { transform: [{ scale: 0.97 }] },
+  avatar: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
+  addCircle: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#EAE5DC', alignItems: 'center', justifyContent: 'center' },
   relation: { fontSize: 11, fontWeight: '700', color: colors.textMuted },
   name: { fontSize: 15, fontWeight: '800', color: colors.text },
   years: { fontSize: 11, color: colors.textMuted },
