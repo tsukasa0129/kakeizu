@@ -179,7 +179,7 @@ UTM（`utm_source` など5つ）はチェックアウトまで引き継がれ、
    - 成功時の動作: **Custom redirect URL** に `https://<ファネルのドメイン>/success`（`redeem_url` が自動で付きます）
    - Web Billing の Stripe を本番モードに接続し、アプリ設定でサポート用メールアドレスを登録（基本通貨は JPY に設定済み）
 3. `web-funnel/wrangler.jsonc` の `vars` に `WEB_PURCHASE_LINK`（手順2のリンク）と、公開後に `APP_STORE_URL` / `PLAY_STORE_URL` を設定
-4. `web-funnel/public/common.js` の `LEGAL`（利用規約・プライバシー・**特定商取引法に基づく表記**）を実際のページに差し替える。Web での販売には特商法表記が必須です
+4. 利用規約（https://kakeizu-quest.app/terms ）とプライバシーポリシー（https://kakeizu-quest.app/privacy ）は `web-funnel/public/terms.html` / `privacy.html` で公開済み。アプリのペイウォールもこの URL を開く。**特定商取引法に基づく表記**は未作成なので、作成して `web-funnel/public/common.js` の `LEGAL.tokushoho` を差し替える（Web での販売には必須。氏名・住所・電話番号などの開示が必要）
 5. 価格表示は `funnel.js` の `PRICES` です。Web Billing の商品価格を変えたら合わせてください（Web 限定価格にする場合もここと RevenueCat の商品を変更）
 6. デプロイ
 
@@ -257,6 +257,6 @@ Photomyne のスキャン画面などを調査し、次のパターンを取り�
 
 - **課金チェックはアプリ側のみ**です。本番では Edge Function 側でも、RevenueCat の REST API / Webhook で
   ユーザーの entitlement を確認してから AI 読み取りを実行してください。
-- ペイウォールの利用規約・プライバシーポリシーの URL（`src/app/paywall.tsx`）を差し替えてください。
+- 利用規約・プライバシーポリシーは https://kakeizu-quest.app/terms ・ /privacy に公開済みです（`web-funnel/public/`）。内容を変えたら `cd web-funnel && npm run deploy` で反映してください。問い合わせ先 support@kakeizu-quest.app は Cloudflare Email Routing で運営者の Gmail に転送しています。
 - 戸籍制度の説明（手数料・広域交付の範囲など）は一般的な内容です。自治体により異なる場合があるため、アプリ内でも確認を促しています。
 - 戸籍は機微な個人情報です。ストア審査用のプライバシー表記（データの送信先・非保存）を用意してください。

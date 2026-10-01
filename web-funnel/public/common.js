@@ -1,9 +1,9 @@
 // Shared by the funnel (index.html) and the post-purchase page (success.html).
 
-// Replace with your own pages before running ads. 特定商取引法に基づく表記 is required for web sales in Japan.
+// 特定商取引法に基づく表記 is required for web sales in Japan; replace its URL before running ads.
 window.LEGAL = {
-  terms: 'https://example.com/terms',
-  privacy: 'https://example.com/privacy',
+  terms: '/terms',
+  privacy: '/privacy',
   tokushoho: 'https://example.com/tokushoho',
 };
 
