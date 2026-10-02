@@ -36,6 +36,7 @@ const STRUCTURE_PROMPT = `あなたは日本の戸籍を読み解く専門家で
 変換のルール:
 - 書き起こしに書かれていることだけを出力し、推測で人物や日付を作らないこと。読めない・判断できない箇所は null にして warnings に日本語で理由を書く。
 - 1つの戸籍が複数ページに分かれている場合は、1つの書類としてまとめる。
+- documentType は「全部事項証明」「戸籍謄本」なら koseki_zenbu、「個人事項証明」「戸籍抄本」なら koseki_kojin、「除籍」なら joseki、「改製原戸籍」なら kaisei_genkoseki、それ以外は other。
 - 戸籍に記載された各人（筆頭者・戸主・配偶者・子など）を persons に1人ずつ入れる。tempId は "p1", "p2" … とする。
 - 父母欄の父・母の名前は fatherName / motherName に書かれたとおりに入れる。その父母が同じ書類に記載されている場合は fatherTempId / motherTempId でつなぐ。配偶者も同様に spouseTempId でつなぐ。
 - 日付は書かれたとおり（漢数字・大字もそのまま）を *Text に、西暦に変換できるものは YYYY-MM-DD で *Iso に入れる。元年や改元日の境界に注意する（明治=1868, 大正=1912, 昭和=1926, 平成=1989, 令和=2019 が元年）。
@@ -130,7 +131,8 @@ export async function extractKoseki(images: ImageInput[], ai: Ai) {
           type: 'json_schema',
           json_schema: { name: 'koseki_extraction', schema: RESULT_JSON_SCHEMA, strict: true },
         },
-        reasoning_effort: 'low',
+        // 書き起こしを決まった形に整理するだけなので推論はしない（low でも1ページ1分以上かかった）
+        reasoning_effort: 'none',
         max_tokens: 32000,
       }),
     ),
