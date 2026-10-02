@@ -616,15 +616,15 @@ function runBook(reduced) {
   const book = root.querySelector('.ob-book');
   if (!book) return;
   if (reduced) return book.classList.add('open');
-  // Same rhythm as the app: open after a moment, then a 0.9s turn every 2.4s of reading time.
+  // Same rhythm as the app: open after a moment, then a 0.6s turn after every 1.8s of reading time.
   const at = (ms, fn) => setTimeout(() => book.isConnected && fn(), ms);
   const turn = () => {
     book.classList.toggle('turned');
-    at(3300, turn);
+    at(2400, turn);
   };
-  at(850, () => {
+  at(650, () => {
     book.classList.add('open');
-    at(3300, turn);
+    at(2400, turn);
   });
 }
 

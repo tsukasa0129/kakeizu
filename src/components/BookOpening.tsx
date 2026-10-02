@@ -28,11 +28,11 @@ const PERSON: Spread = ['person', 'timeline'];
 
 /** Open the cover once, then keep turning between the tree spread and the person/timeline spread. */
 const STEPS: { from: Spread; to: Spread; dir: 1 | -1; wait: number }[] = [
-  { from: CLOSED, to: TREE, dir: 1, wait: 700 },
-  { from: TREE, to: PERSON, dir: 1, wait: 2400 },
-  { from: PERSON, to: TREE, dir: -1, wait: 2400 },
+  { from: CLOSED, to: TREE, dir: 1, wait: 500 },
+  { from: TREE, to: PERSON, dir: 1, wait: 1800 },
+  { from: PERSON, to: TREE, dir: -1, wait: 1800 },
 ];
-const TURN_MS = 900;
+const TURN_MS = 600;
 
 export function BookOpening() {
   const reduced = useReducedMotion();
