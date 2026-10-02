@@ -11,7 +11,8 @@ import { z } from 'zod';
 import { ExtractionResult } from './extractionSchema';
 
 const VISION_MODEL = '@cf/qwen/qwen3.8-27b';
-const STRUCTURE_MODEL = '@cf/deepseek-ai/deepseek-v4-pro-0813';
+// Pro は1ページの構造化に2分ほどかかったため、速い Flash を使う
+const STRUCTURE_MODEL = '@cf/deepseek-ai/deepseek-v4-flash-0731';
 
 const MAX_IMAGES = 6;
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // per image, after base64 decoding
