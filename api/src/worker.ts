@@ -6,7 +6,8 @@
 //   DELETE /me                             → アカウントと保存データをすべて削除
 //   GET    /me/data                        → { data, version, updatedAt }（未保存なら data: null, version: 0）
 //   PUT    /me/data  { data, baseVersion } → { version, updatedAt }。baseVersion が古ければ 409 と最新の内容
-//   POST   /extract  { images }           → { result }（戸籍画像の AI 読み取り。Workers AI。ログイン不要。src/extract.ts）
+//   POST   /extract  { images }           → { result } | { error }（戸籍画像の AI 読み取り。Workers AI。ログイン不要。src/extract.ts）
+//                                            時間がかかるので空白を送りながら待ち、読み取り中のエラーも 200 の { error } で返す
 // 認証は Authorization: Bearer <token>（Cookie は使わないので CORS は * で問題ない）。
 
 import { extractKoseki, ExtractError, validateImages } from './extract';
@@ -243,7 +244,36 @@ async function deleteAccount(user: { id: string }, env: Env) {
   return json({ ok: true });
 }
 
-async function extract(request: Request, env: Env) {
+/**
+ * Reading takes 30–90 seconds. Mobile network stacks give up when nothing arrives for about a minute, so the
+ * response starts at once and a space is sent every 10 seconds until the JSON is ready (JSON.parse ignores
+ * leading whitespace). Errors found after that point are sent as { error } with status 200.
+ */
+function keepAliveJson(ctx: ExecutionContext, task: () => Promise<unknown>) {
+  const { readable, writable } = new TransformStream<Uint8Array, Uint8Array>();
+  const writer = writable.getWriter();
+  const timer = setInterval(() => writer.write(encoder.encode(' ')).catch(() => {}), 10_000);
+  ctx.waitUntil(
+    (async () => {
+      let body: unknown;
+      try {
+        body = await task();
+      } catch (e) {
+        if (!(e instanceof HttpError || e instanceof ExtractError)) console.error(e);
+        body = { error: e instanceof HttpError || e instanceof ExtractError ? e.message : 'サーバーでエラーが発生しました。しばらくしてからお試しください' };
+      } finally {
+        clearInterval(timer);
+      }
+      await writer.write(encoder.encode(JSON.stringify(body))).catch(() => {});
+      await writer.close().catch(() => {});
+    })(),
+  );
+  return new Response(readable, {
+    headers: { ...CORS, 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' },
+  });
+}
+
+async function extract(request: Request, env: Env, ctx: ExecutionContext) {
   const images = validateImages(await request.json().catch(() => null));
 
   // Abuse guard: the endpoint is open (the paywall is enforced in the app), so cap requests per IP.
@@ -260,15 +290,15 @@ async function extract(request: Request, env: Env) {
     env.DB.prepare('DELETE FROM extract_requests WHERE requested_at < ?').bind(now - 24 * HOUR_MS),
   ]);
 
-  return json({ result: await extractKoseki(images, env.AI) });
+  return keepAliveJson(ctx, async () => ({ result: await extractKoseki(images, env.AI) }));
 }
 
-async function route(request: Request, env: Env): Promise<Response> {
+async function route(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   const { pathname } = new URL(request.url);
   const method = request.method;
   if (method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
 
-  if (pathname === '/extract' && method === 'POST') return extract(request, env);
+  if (pathname === '/extract' && method === 'POST') return extract(request, env, ctx);
   if (pathname === '/auth/code' && method === 'POST') return sendCode(request, env);
   if (pathname === '/auth/verify' && method === 'POST') return verifyCode(request, env);
 
@@ -289,9 +319,9 @@ async function route(request: Request, env: Env): Promise<Response> {
 }
 
 export default {
-  async fetch(request, env): Promise<Response> {
+  async fetch(request, env, ctx): Promise<Response> {
     try {
-      return await route(request, env);
+      return await route(request, env, ctx);
     } catch (e) {
       if (e instanceof HttpError || e instanceof ExtractError) return json({ error: e.message }, e.status);
       console.error(e);

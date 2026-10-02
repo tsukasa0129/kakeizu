@@ -40,9 +40,12 @@ export async function extractKoseki(pages: PageImage[]): Promise<ExtractionResul
   );
 
   try {
-    const { result } = await api<{ result: ExtractionResult }>('/extract', { method: 'POST', body: { images } });
-    return result;
+    // Errors that happen while reading come back as { error } with status 200 (the server keeps the connection alive).
+    const body = await api<{ result?: ExtractionResult; error?: string }>('/extract', { method: 'POST', body: { images } });
+    if (body.result) return body.result;
+    throw new ExtractError(body.error ?? '読み取りに失敗しました');
   } catch (e) {
+    if (e instanceof ExtractError) throw e;
     throw new ExtractError(e instanceof ApiError ? e.message : '読み取りに失敗しました');
   }
 }
