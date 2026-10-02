@@ -124,13 +124,11 @@ export async function extractKoseki(images: ImageInput[], ai: Ai) {
     await runModel(() =>
       ai.run(STRUCTURE_MODEL, {
         messages: [
-          { role: 'system', content: STRUCTURE_PROMPT },
+          { role: 'system', content: `${STRUCTURE_PROMPT}\n\n出力は次の JSON Schema に従う JSON オブジェクトだけにする:\n${JSON.stringify(RESULT_JSON_SCHEMA)}` },
           { role: 'user', content: `戸籍の書き起こし:\n\n${transcription}` },
         ],
-        response_format: {
-          type: 'json_schema',
-          json_schema: { name: 'koseki_extraction', schema: RESULT_JSON_SCHEMA, strict: true },
-        },
+        // JSON Schema での制約付き出力（json_schema）は1ページ40秒以上かかったので、JSON モード＋プロンプトのスキーマ＋Zod の検証にする
+        response_format: { type: 'json_object' },
         // 書き起こしを決まった形に整理するだけなので推論はしない（low でも1ページ1分以上かかった）
         reasoning_effort: 'none',
         max_tokens: 32000,
