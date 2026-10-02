@@ -179,7 +179,7 @@ UTM（`utm_source` など5つ）はチェックアウトまで引き継がれ、
    - 成功時の動作: **Custom redirect URL** に `https://<ファネルのドメイン>/success`（`redeem_url` が自動で付きます）
    - Web Billing の Stripe を本番モードに接続し、アプリ設定でサポート用メールアドレスを登録（基本通貨は JPY に設定済み）
 3. `web-funnel/wrangler.jsonc` の `vars` に `WEB_PURCHASE_LINK`（手順2のリンク）と、公開後に `APP_STORE_URL` / `PLAY_STORE_URL` を設定
-4. 利用規約（https://kakeizu-quest.app/terms ）とプライバシーポリシー（https://kakeizu-quest.app/privacy ）は `web-funnel/public/terms.html` / `privacy.html` で公開済み。アプリのペイウォールもこの URL を開く。**特定商取引法に基づく表記**は未作成なので、作成して `web-funnel/public/common.js` の `LEGAL.tokushoho` を差し替える（Web での販売には必須。氏名・住所・電話番号などの開示が必要）
+4. 利用規約（https://kakeizu-quest.app/terms ）とプライバシーポリシー（https://kakeizu-quest.app/privacy ）は `web-funnel/public/terms.html` / `privacy.html` で公開済み。アプリのペイウォールもこの URL を開く。**特定商取引法に基づく表記**は `web-funnel/public/tokushoho.html`（/tokushoho）。販売事業者名・所在地・電話番号の `{{SELLER_NAME}}` / `{{ADDRESS}}` / `{{PHONE}}` を埋めるまで、`scripts/embed.mjs` がエラーで止めるため `npm run deploy`（と `npm run typecheck`）はできません（仮の値のまま公開しないための安全装置）
 5. 価格表示は `funnel.js` の `PRICES` です。Web Billing の商品価格を変えたら合わせてください（Web 限定価格にする場合もここと RevenueCat の商品を変更）
 6. デプロイ
 
