@@ -168,7 +168,7 @@ RevenueCat プロジェクト「家系図クエスト」は設定済みです（
 Web で決済するので App Store / Google Play の手数料がかからず、広告の計測もしやすくなります。
 
 ```
-広告 ─▶ /（ようこそ）─▶ 紹介5ページ ─▶ 質問4問 ─▶ ご先祖さまの人数 ─▶ 比較 ─▶ 1日の目標 ─▶ お名前 ─▶ プラン作成 ─▶ ペイウォール
+広告 ─▶ /（ようこそ）─▶ 紹介6ページ ─▶ 質問4問 ─▶ ご先祖さまの人数 ─▶ 比較 ─▶ 1日の目標 ─▶ お名前 ─▶ プラン作成 ─▶ ペイウォール
      ─▶ /checkout ─▶ RevenueCat Web Purchase Link（Stripe）─▶ /success?redeem_url=rc-xxxx://…
      ─▶ アプリをインストール ─▶「アプリで有効にする」─▶ アプリの /redeem_web_purchase で entitlement を付与
 ```

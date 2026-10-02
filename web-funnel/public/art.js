@@ -2,7 +2,7 @@
 //   mascot()      ← src/components/Mascot.tsx (まめた, with moods, bobbing and blinking)
 //   appIcon()     ← src/components/Icon.tsx (the flat two-tone icons)
 //   ion()         ← the Ionicons glyphs the app uses via @expo/vector-icons (ionicons 7, MIT)
-//   bookMockup()  ← src/components/BookMockup.tsx
+//   bookOpening() ← src/components/BookOpening.tsx
 
 const C = {
   bg: '#FFFFFF', surface: '#F7F7F7', border: '#E5E5E5', locked: '#AFAFAF', text: '#3C3C3C', textMuted: '#777777',
@@ -119,6 +119,7 @@ const FLAT_ICONS = {
   hourglass: `<path d="M7 4.5h10c0 4.5-4 6-4 7.5s4 3 4 7.5H7c0-4.5 4-6 4-7.5s-4-3-4-7.5z" fill="${C.blueLight}" stroke="${C.blue}" stroke-width="1.3" stroke-linejoin="round"/>
     <path d="M9 7.5h6c-.5 1.5-2.5 2.5-3 3.5-.5-1-2.5-2-3-3.5zM8.5 19c.5-2.5 2.5-3 3.5-4 1 1 3 1.5 3.5 4z" fill="${C.yellow}"/>
     <rect x="5" y="2" width="14" height="2.5" rx="1" fill="${C.textMuted}"/><rect x="5" y="19.5" width="14" height="2.5" rx="1" fill="${C.textMuted}"/>`,
+  pin: `<path d="M12 22s-7-7.5-7-12.5a7 7 0 0 1 14 0C19 14.5 12 22 12 22z" fill="${C.red}"/><circle cx="12" cy="9.5" r="2.8" fill="#fff"/>`,
   check: `<path d="M5 12.5l5 5L19 7" fill="none" stroke="${C.green}" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>`,
   cross: `<path d="M6.5 6.5l11 11M17.5 6.5l-11 11" stroke="${C.red}" stroke-width="3.2" stroke-linecap="round"/>`,
 };
@@ -145,25 +146,25 @@ const ION = {
 window.ion = (name, size, color) =>
   `<svg class="i" width="${size}" height="${size}" viewBox="0 0 512 512" fill="currentColor" style="color:${color}" aria-hidden="true">${ION[name]}</svg>`;
 
-// ---- the printed book ----
+// ---- the printed book, opening (← src/components/BookOpening.tsx) ----
 
+const BW = 136; // one page
+const BH = 176;
 const GOLD = '#E8C872';
+const BOOK_INK = '#5B4636';
 
-/** A hardcover with a full pedigree (you → 曾祖父母) stamped on it in gold. */
-window.bookMockup = (title) => {
-  const W = 150;
-  const H = 96;
-  const GENS = 4;
+/** Ahnentafel layout (slot 1 = you) for `gens` generations across `width`. */
+function pedigree(width, height, gens, margin, top = 0) {
   const gen = (s) => Math.floor(Math.log2(s));
   const pos = (s) => {
     const g = gen(s);
     const i = s - 2 ** g;
-    const span = 2 ** (GENS - 1 - g);
-    return { x: 10 + g * ((W - 20) / (GENS - 1)), y: ((i * span + span / 2) * H) / 2 ** (GENS - 1) };
+    const span = 2 ** (gens - 1 - g);
+    return { x: margin + g * ((width - margin * 2) / (gens - 1)), y: top + ((i * span + span / 2) * (height - top)) / 2 ** (gens - 1) };
   };
-  const all = Array.from({ length: 2 ** GENS - 1 }, (_, i) => i + 1);
-  const lines = all
-    .filter((s) => gen(s) < GENS - 1)
+  const slots = Array.from({ length: 2 ** gens - 1 }, (_, i) => i + 1);
+  const lines = slots
+    .filter((s) => gen(s) < gens - 1)
     .map((s) => {
       const a = pos(s);
       const f = pos(s * 2);
@@ -172,17 +173,77 @@ window.bookMockup = (title) => {
       return `M${a.x} ${a.y} H${xm} M${xm} ${f.y} V${m.y} M${xm} ${f.y} H${f.x} M${xm} ${m.y} H${m.x}`;
     })
     .join(' ');
-  const dots = all
+  return { slots, pos, lines, gen };
+}
+
+function bookCover() {
+  const t = pedigree(84, 54, 4, 4);
+  const dots = t.slots.map((s) => { const p = t.pos(s); return `<circle cx="${p.x}" cy="${p.y}" r="${s === 1 ? 3.4 : 2.4}" fill="${GOLD}"/>`; }).join('');
+  return `<div class="bk-cover"><div class="bk-spine"></div><div class="bk-frame">
+    <div class="bk-title">わが家</div><div class="bk-sub">家 系 図</div>
+    <svg width="84" height="54" aria-hidden="true"><path d="${t.lines}" stroke="${GOLD}" stroke-opacity=".5" stroke-width="1" fill="none"/>${dots}</svg>
+  </div></div>`;
+}
+
+function bookPaper(side, inner) {
+  return `<div class="bk-paper ${side}">${inner}<span class="bk-gutter"></span></div>`;
+}
+
+function treeHalf(side) {
+  const t = pedigree(BW * 2, BH - 12, 4, 22, 22);
+  const boxes = t.slots
     .map((s) => {
-      const p = pos(s);
-      return `<circle cx="${p.x}" cy="${p.y}" r="${s === 1 ? 5 : 3.6}" fill="${GOLD}" stroke="${GOLD}" stroke-width="1.2"/>`;
+      const p = t.pos(s);
+      const w = t.gen(s) === 0 ? 30 : 26;
+      const fill = s === 1 ? C.greenLight : s % 2 === 0 ? C.blueLight : '#FFE3F3';
+      return `<rect x="${p.x - w / 2}" y="${p.y - 5.5}" width="${w}" height="11" rx="2.5" fill="${fill}" stroke="${BOOK_INK}" stroke-opacity=".35" stroke-width=".6"/>`;
     })
     .join('');
-  return `<div class="book-wrap"><div class="book-pages"></div><div class="book">
-    <div class="book-spine"></div>
-    <div class="book-cover"><div class="book-frame">
-      <div class="book-title">${title}</div><div class="book-sub">家 系 図</div>
-      <svg width="${W}" height="${H}" aria-hidden="true"><path d="${lines}" stroke="${GOLD}" stroke-opacity=".5" stroke-width="1.2" fill="none"/>${dots}</svg>
-    </div></div>
+  return bookPaper(
+    side ? 'right' : 'left',
+    `${side ? '' : '<div class="bk-head">わが家の家系図</div>'}
+     <svg class="bk-tree" width="${BW * 2}" height="${BH}" style="left:${-side * BW}px" aria-hidden="true">
+       <path d="${t.lines}" stroke="${BOOK_INK}" stroke-opacity=".45" stroke-width=".8" fill="none"/>${boxes}
+     </svg>`,
+  );
+}
+
+function personPage() {
+  const rows = [['生まれ', '明治12年'], ['出生地', '〇〇県〇〇村'], ['本籍', '〇〇県〇〇郡']]
+    .map(([k, v]) => `<div class="bk-kv"><span>${k}</span><b>${v}</b></div>`)
+    .join('');
+  return bookPaper(
+    'left',
+    `<div class="bk-head">曾祖父</div><div class="bk-body">
+      <span class="bk-avatar"><svg width="22" height="22" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4.5" fill="#D9CDB8"/><path d="M3.5 22a8.5 7.5 0 0 1 17 0z" fill="#D9CDB8"/></svg></span>
+      <div class="bk-kana">やまだ せいきち</div><div class="bk-name">山田 清吉</div>${rows}
+      <i class="bk-line" style="width:90%;margin-top:6px"></i><i class="bk-line" style="width:70%"></i>
+    </div>`,
+  );
+}
+
+function timelinePage() {
+  const rows = [
+    ['明治', '清吉 生まれ', C.orange],
+    ['大正', '祖父 生まれ', C.purple],
+    ['昭和', '父 生まれ', C.blue],
+    ['平成', 'あなた 生まれ', C.green],
+    ['令和', '家系図 完成', C.greenDark],
+  ]
+    .map(([era, what, color]) => `<div class="bk-era"><span style="background:${color}">${era}</span><b>${what}</b></div>`)
+    .join('');
+  return bookPaper('right', `<div class="bk-head">年表</div><div class="bk-body"><div class="bk-eras">${rows}</div></div>`);
+}
+
+/**
+ * The family-tree book. Layers on the right half, bottom to top: the timeline page, a leaf
+ * (front: tree right half / back: person page) and the cover (front: cover / back: tree left half).
+ * `.open` swings the cover over to the left; `.turned` turns the leaf (funnel.js runBook drives both).
+ */
+window.bookOpening = () => `
+  <div class="ob-book-wrap"><div class="ob-book" style="--bw:${BW}px;--bh:${BH}px">
+    <span class="bk-edge"></span>
+    <div class="bk-half">${timelinePage()}</div>
+    <div class="bk-leaf bk-page"><div class="bk-face">${treeHalf(1)}</div><div class="bk-face bk-back">${personPage()}</div></div>
+    <div class="bk-leaf bk-front"><div class="bk-face">${bookCover()}</div><div class="bk-face bk-back">${treeHalf(0)}</div></div>
   </div></div>`;
-};

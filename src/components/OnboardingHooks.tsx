@@ -2,7 +2,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
 import { Animated, Easing, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { BookMockup } from '@/components/BookMockup';
+import { BookOpening } from '@/components/BookOpening';
+import { Icon, type IconName } from '@/components/Icon';
 import { Mascot } from '@/components/Mascot';
 import { FadeSlideIn, nativeDriver, PopIn, useCountUp, useLoop, useReducedMotion } from '@/components/Motion';
 import {
@@ -17,15 +18,17 @@ import { colors, font, radius } from '@/theme';
 // Intro pages shown right after the welcome screen, before the questions (like the welcome
 // carousels of the top-grossing apps studied in Appllama). Each one sells a reason to start:
 // how many ancestors you have, how far back koseki go, what meeting them gives you (heart and
-// practical), how little effort it takes, and the finished tree printed as a real book.
+// practical), that the app guides every step, how little effort it takes, and the finished tree
+// printed as a real book. The web funnel (web-funnel/public/funnel.js) shows the same pages.
 
-export const HOOK_COUNT = 5;
+export const HOOK_COUNT = 6;
 
 export function OnboardingHook({ index }: { index: number }) {
   if (index === 0) return <AncestorCount />;
   if (index === 1) return <BackInTime />;
   if (index === 2) return <Benefits />;
-  if (index === 3) return <ScanToTree />;
+  if (index === 3) return <GuidedSteps />;
+  if (index === 4) return <ScanToTree />;
   return <PrintedBook />;
 }
 
@@ -223,7 +226,56 @@ function BenefitRow({
   );
 }
 
-// ---------- 4. Scan → tree ----------
+// ---------- 4. The app guides every step ----------
+
+// Only what the app really covers: src/data/guides.ts (本籍地, 広域交付 / コンビニ / 郵送, さかのぼり),
+// the route quiz, the scan's "next koseki" list and the lessons.
+const GUIDE_STEPS: { icon: IconName; title: string; text: string }[] = [
+  { icon: 'pin', title: '本籍地を調べる', text: '住民票の取り方から案内' },
+  { icon: 'office', title: '戸籍を取る', text: '役所・コンビニ・郵送から、あなたに合う方法を診断' },
+  { icon: 'search', title: '古い戸籍をさかのぼる', text: '次に請求する戸籍をリストでお知らせ' },
+  { icon: 'tree', title: '家系図を完成させる', text: 'ご先祖さまが1人ずつ埋まっていく' },
+];
+
+function GuidedSteps() {
+  return (
+    <View style={styles.page}>
+      <Title>
+        家系図の作り方も、{'\n'}戸籍の取り方も、{'\n'}
+        <Text style={{ color: colors.greenDark }}>すべてアプリが案内</Text>します
+      </Title>
+      <View style={[styles.visual, { alignItems: 'stretch', gap: 0 }]}>
+        {GUIDE_STEPS.map((step, i) => (
+          <FadeSlideIn key={step.title} from="left" delay={250 + i * 220} style={styles.stepRow}>
+            <View style={{ alignItems: 'center' }}>
+              <View style={styles.stepIcon}>
+                <Icon name={step.icon} size={22} />
+              </View>
+              {i < GUIDE_STEPS.length - 1 && <View style={styles.stepLine} />}
+            </View>
+            <View style={{ flex: 1, paddingBottom: i < GUIDE_STEPS.length - 1 ? 12 : 0 }}>
+              <Text style={styles.stepTitle}>
+                <Text style={{ color: colors.greenDark }}>{i + 1}. </Text>
+                {step.title}
+              </Text>
+              <Text style={font.small}>{step.text}</Text>
+            </View>
+          </FadeSlideIn>
+        ))}
+      </View>
+      <View style={{ gap: 8, alignSelf: 'stretch' }}>
+        {['持ち物も申請書の書き方も、チェックリストで', '役所への電話のしかたまで、ていねいに', '旧字や和暦の読み方は、レッスンでやさしく'].map((t, i) => (
+          <FadeSlideIn key={t} from="left" delay={1150 + i * 150} style={styles.point}>
+            <Ionicons name="checkmark-circle" size={20} color={colors.blue} />
+            <Text style={[font.body, { flex: 1, fontWeight: '700' }]}>{t}</Text>
+          </FadeSlideIn>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+// ---------- 5. Scan → tree ----------
 
 const PAPER_H = 112;
 
@@ -286,14 +338,9 @@ function ScanToTree() {
   );
 }
 
-// ---------- 5. The finished book ----------
-
-const FULL_TREE = new Set(Array.from({ length: 15 }, (_, i) => i + 1));
+// ---------- 6. The finished book ----------
 
 function PrintedBook() {
-  const float = useLoop(2200);
-  const translateY = float.interpolate({ inputRange: [0, 1], outputRange: [0, -8] });
-  const rotate = float.interpolate({ inputRange: [0, 1], outputRange: ['-1.5deg', '1.5deg'] });
   return (
     <View style={styles.page}>
       <Title>
@@ -301,9 +348,7 @@ function PrintedBook() {
         <Text style={{ color: colors.orangeDark }}>世界に一冊の本</Text>に
       </Title>
       <FadeSlideIn delay={150} distance={60}>
-        <Animated.View style={{ transform: [{ translateY }, { rotate }] }}>
-          <BookMockup title="わが家" slots={FULL_TREE} />
-        </Animated.View>
+        <BookOpening />
       </FadeSlideIn>
       <View style={{ gap: 8, alignSelf: 'stretch' }}>
         {['見開きいっぱいの家系図', 'ひとりずつの人物ページと和暦つきの年表', '還暦・法事・お正月の贈りものにも'].map((t, i) => (
@@ -349,6 +394,17 @@ const styles = StyleSheet.create({
   eraDot: { width: 18, height: 18, borderRadius: 9, marginTop: 3 },
   eraLine: { width: 4, flex: 1, backgroundColor: colors.border, marginTop: 2 },
   eraName: { fontSize: 18, fontWeight: '900' },
+  stepRow: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
+  stepIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepLine: { width: 3, flex: 1, minHeight: 10, borderRadius: 2, backgroundColor: colors.greenLight },
+  stepTitle: { fontSize: 16, fontWeight: '900', color: colors.text, marginTop: 2 },
   sectionHead: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   sectionTitle: { fontSize: 16, fontWeight: '900', letterSpacing: 2 },
   benefit: { flexDirection: 'row', gap: 10, padding: 10, borderRadius: radius.md, alignItems: 'flex-start' },

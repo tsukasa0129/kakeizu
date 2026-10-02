@@ -48,13 +48,13 @@ const COMPARE_ROWS = [
 ];
 const FEATURES = [
   ['scroll', 'AIで戸籍を読み取り', '撮るだけで人物・続柄・日付を読み取り、家系図に自動で配置（無制限）'],
-  ['tree', '5代前まで広がる家系図', 'あなた → 父母 → 祖父母 → 曾祖父母 → 高祖父母 …'],
-  ['office', '役所ナビ', '本籍地の調べ方から、次に請求する戸籍までチェックリストで案内'],
+  ['office', '家系図の取り方はアプリが案内', '本籍地の調べ方から、役所・コンビニ・郵送での戸籍の取り方まで、チェックリストで案内'],
+  ['book', '家系図が完成したら実際の本にしてお届け', 'ハードカバーの本にして、ご自宅にお届けします（製本は別料金）'],
   ['spark', 'ゲーム感覚で続く', 'レッスン・連続記録・クエストで、少しずつ空欄が埋まる'],
 ];
 const BOOK_PRICE_FROM = '¥3,980〜'; // src/data/book.ts BOOK_PLANS[0].price
 
-const HOOKS = ['hook1', 'hook2', 'hook3', 'hook4', 'hook5'];
+const HOOKS = ['hook1', 'hook2', 'hook3', 'hook4', 'hook5', 'hook6'];
 /** The app's 8 question steps; the progress bar shows how far through them you are. */
 const QUESTIONS = ['motive', 'target', 'knowledge', 'experience', 'insight', 'compare', 'goal', 'name'];
 const STEPS = ['welcome', ...HOOKS, ...QUESTIONS, 'calc', 'plan', 'paywall'];
@@ -157,6 +157,14 @@ const benefitRow = ([ic, title, text], tint, color, delay) =>
 
 const point = (ic, text, i, base) => fade(`${ic}<span>${text}</span>`, base + i * 150, 'left', 'point');
 
+// Only what the app really covers (src/components/OnboardingHooks.tsx GUIDE_STEPS).
+const GUIDE_STEPS = [
+  { icon: 'pin', title: '本籍地を調べる', text: '住民票の取り方から案内' },
+  { icon: 'office', title: '戸籍を取る', text: '役所・コンビニ・郵送から、あなたに合う方法を診断' },
+  { icon: 'search', title: '古い戸籍をさかのぼる', text: '次に請求する戸籍をリストでお知らせ' },
+  { icon: 'tree', title: '家系図を完成させる', text: 'ご先祖さまが1人ずつ埋まっていく' },
+];
+
 const hookPages = {
   hook1: () => `
     ${hookTitle(`10代さかのぼると、<br>ご先祖さまは<span style="color:${C.greenDark}">1,024人</span>`)}
@@ -201,7 +209,26 @@ const hookPages = {
       ${PRACTICAL.map((b, i) => benefitRow(b, C.blueLight, C.blueDark, 920 + i * 140)).join('')}
     </div>`,
 
-  hook4: () => {
+  hook4: () => `
+    ${hookTitle(`家系図の作り方も、<br>戸籍の取り方も、<br><span style="color:${C.greenDark}">すべてアプリが案内</span>します`)}
+    <div class="visual steps">
+      ${GUIDE_STEPS.map((step, i) =>
+        fade(
+          `<div class="step-rail"><span class="step-icon">${appIcon(step.icon, 22)}</span>${i < GUIDE_STEPS.length - 1 ? '<span class="step-line"></span>' : ''}</div>
+           <div class="step-text${i < GUIDE_STEPS.length - 1 ? ' gap' : ''}"><div class="step-title"><span style="color:${C.greenDark}">${i + 1}. </span>${step.title}</div><div class="small">${step.text}</div></div>`,
+          250 + i * 220,
+          'left',
+          'step-row',
+        ),
+      ).join('')}
+    </div>
+    <div class="points">
+      ${['持ち物も申請書の書き方も、チェックリストで', '役所への電話のしかたまで、ていねいに', '旧字や和暦の読み方は、レッスンでやさしく']
+        .map((t, i) => point(ion('checkmark-circle', 20, C.blue), t, i, 1150))
+        .join('')}
+    </div>`,
+
+  hook5: () => {
     const tree = [
       [C.male, C.female, C.male, C.female],
       [C.male, C.female],
@@ -231,9 +258,9 @@ const hookPages = {
     </div>`;
   },
 
-  hook5: () => `
+  hook6: () => `
     ${hookTitle(`完成した家系図は、<br><span style="color:${C.orangeDark}">世界に一冊の本</span>に`)}
-    ${fade(`<div class="float">${bookMockup('わが家')}</div>`, 150, 'bottom', '', '--dist:60px')}
+    ${fade(bookOpening(), 150, 'bottom', '', '--dist:60px')}
     <div class="points">
       ${['見開きいっぱいの家系図', 'ひとりずつの人物ページと和暦つきの年表', '還暦・法事・お正月の贈りものにも']
         .map((t, i) => point(ion('book', 18, C.orange), t, i, 500))
@@ -565,6 +592,7 @@ function animate(step) {
     );
   }
   lastHook = hook >= 0 ? hook : null;
+  if (step === 'hook6') runBook(reduced);
   if (step === 'calc') runCalc(reduced);
   if (step === 'plan' && !reduced) confetti();
 }
@@ -581,6 +609,23 @@ function countUp(el, to, ms, delay) {
     };
     requestAnimationFrame(tick);
   }, delay);
+}
+
+/** The book (art.js bookOpening): the cover opens, then the page keeps turning between the two spreads. */
+function runBook(reduced) {
+  const book = root.querySelector('.ob-book');
+  if (!book) return;
+  if (reduced) return book.classList.add('open');
+  // Same rhythm as the app: open after a moment, then a 0.9s turn every 2.4s of reading time.
+  const at = (ms, fn) => setTimeout(() => book.isConnected && fn(), ms);
+  const turn = () => {
+    book.classList.toggle('turned');
+    at(3300, turn);
+  };
+  at(850, () => {
+    book.classList.add('open');
+    at(3300, turn);
+  });
 }
 
 /** Same pace as the app: +2% every 60ms, items tick off as it goes, then the plan. */

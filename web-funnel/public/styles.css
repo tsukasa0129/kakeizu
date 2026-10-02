@@ -213,16 +213,59 @@ p { margin: 0 0 12px; }
 .points { display: flex; flex-direction: column; gap: 8px; }
 .point { display: flex; align-items: center; gap: 8px; font-size: 15px; line-height: 23px; font-weight: 700; }
 
-.float { animation: float 1.1s ease-in-out infinite alternate; }
-.book-wrap { position: relative; width: fit-content; margin: 12px auto; }
-.book-pages { position: absolute; top: 6px; left: 10px; right: -8px; bottom: -6px; background: #fffdf7; border: 1px solid #e6d8bc; border-radius: 6px; }
-.book { position: relative; display: flex; border-radius: 6px; overflow: hidden; box-shadow: 0 8px 24px rgba(107, 74, 31, .3); }
-.book-spine { width: 14px; background: #1f3327; }
-.book-cover { background: #2f4a3a; padding: 10px; }
-.book-frame { border: 1.5px solid #e8c872; border-radius: 3px; padding: 14px; display: flex; flex-direction: column; align-items: center; gap: 4px; color: #e8c872; }
-.book-frame svg { display: block; }
-.book-title { font-size: 20px; font-weight: 900; letter-spacing: 4px; line-height: 1.3; }
-.book-sub { font-size: 11px; font-weight: 700; letter-spacing: 2px; margin-bottom: 8px; opacity: .85; }
+/* the opening book (art.js bookOpening) */
+.ob-book-wrap { display: flex; justify-content: center; padding: 14px 0; }
+.ob-book {
+  position: relative; width: calc(var(--bw) * 2); height: var(--bh); perspective: 1100px;
+  transform: translateX(calc(var(--bw) / -2)); transition: transform .9s cubic-bezier(.65, 0, .35, 1);
+}
+.ob-book.open { transform: none; }
+.bk-edge { position: absolute; left: 4px; right: 4px; bottom: -5px; height: 10px; border-radius: 4px; background: #ede3cf; box-shadow: 0 6px 14px rgba(107, 74, 31, .3); opacity: 0; transition: opacity .3s .5s; }
+.ob-book.open .bk-edge { opacity: 1; }
+.bk-half, .bk-leaf { position: absolute; top: 0; left: var(--bw); width: var(--bw); height: var(--bh); }
+.bk-leaf { transform-origin: left center; transform-style: preserve-3d; transition: transform .9s cubic-bezier(.65, 0, .35, 1), z-index 0s .45s; }
+.bk-page { z-index: 2; }
+.bk-front { z-index: 3; }
+.open .bk-front { transform: rotateY(-180deg); z-index: 1; }
+.turned .bk-page { transform: rotateY(-180deg); }
+.bk-face { position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+.bk-face.bk-back { transform: rotateY(180deg); }
+.ob-book:not(.open) .bk-half { visibility: hidden; transition: visibility 0s .2s; }
+
+.bk-cover { display: flex; height: 100%; background: #2f4a3a; border-radius: 6px; overflow: hidden; box-shadow: 0 8px 20px rgba(107, 74, 31, .3); }
+.bk-spine { width: 10px; background: #1f3327; }
+.bk-frame { flex: 1; margin: 9px; border: 1.2px solid #e8c872; border-radius: 3px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #e8c872; }
+.bk-frame svg { display: block; }
+.bk-title { font-size: 19px; font-weight: 900; letter-spacing: 4px; line-height: 1.3; }
+.bk-sub { font-size: 10px; font-weight: 700; letter-spacing: 2px; margin-bottom: 8px; opacity: .85; }
+.bk-paper { position: relative; height: 100%; background: #fffdf7; border: .5px solid #e6d8bc; overflow: hidden; color: #5b4636; }
+.bk-paper.left { border-radius: 6px 0 0 6px; }
+.bk-paper.right { border-radius: 0 6px 6px 0; }
+.bk-gutter { position: absolute; top: 0; bottom: 0; width: 10px; background: rgba(107, 74, 31, .07); }
+.bk-paper.left .bk-gutter { right: 0; }
+.bk-paper.right .bk-gutter { left: 0; }
+.bk-tree { position: absolute; top: 0; }
+.bk-head { position: relative; font-size: 8px; font-weight: 800; color: #b08a3e; letter-spacing: 1px; margin: 8px 0 0 12px; line-height: 1.2; }
+.bk-body { display: flex; flex-direction: column; align-items: center; padding: 0 12px 10px; }
+.bk-avatar { width: 34px; height: 34px; border-radius: 50%; border: 1px solid #d9cdb8; display: flex; align-items: flex-end; justify-content: center; overflow: hidden; margin-top: 10px; }
+.bk-kana { font-size: 7px; color: #9a8a74; margin-top: 6px; line-height: 1.2; }
+.bk-name { font-size: 13px; font-weight: 900; margin-bottom: 6px; line-height: 1.4; }
+.bk-kv { display: flex; gap: 6px; align-self: stretch; padding: 2px 0; border-bottom: .5px solid #d9cdb8; font-size: 7.5px; line-height: 1.5; }
+.bk-kv span { width: 30px; font-weight: 700; color: #9a8a74; }
+.bk-line { display: block; height: 3px; border-radius: 2px; background: #efe6d6; margin-top: 4px; }
+.bk-eras { align-self: stretch; display: grid; gap: 9px; margin-top: 4px; }
+.bk-era { display: flex; align-items: center; gap: 7px; font-size: 7.5px; line-height: 1.4; }
+.bk-era span { width: 30px; border-radius: 7px; padding: 1px 0; text-align: center; color: #fff; font-weight: 900; }
+
+/* guide steps (intro page 4) */
+.visual.steps { align-items: stretch; gap: 0; }
+.step-row { display: flex; gap: 12px; align-items: flex-start; }
+.step-rail { display: flex; flex-direction: column; align-items: center; align-self: stretch; }
+.step-icon { width: 40px; height: 40px; border-radius: 20px; background: #fff; display: grid; place-items: center; flex: none; }
+.step-line { width: 3px; flex: 1; min-height: 10px; border-radius: 2px; background: #d7ffb8; }
+.step-text { flex: 1; }
+.step-text.gap { padding-bottom: 12px; }
+.step-title { font-size: 16px; font-weight: 900; margin-top: 2px; line-height: 1.5; }
 
 /* insight */
 .card { background: var(--surface); border-radius: 22px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
@@ -334,7 +377,6 @@ details p { margin: 8px 0 0; color: var(--muted); font-size: 14px; }
 @keyframes bounce { from { transform: scale(.94); } to { transform: none; } }
 @keyframes pulse { from { transform: scale(var(--from-scale, 1)); } to { transform: scale(var(--to-scale, 1.2)); } }
 @keyframes scan { from { transform: translateY(4px); } to { transform: translateY(104px); } }
-@keyframes float { from { transform: translateY(0) rotate(-1.5deg); } to { transform: translateY(-8px) rotate(1.5deg); } }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-delay: 0s !important; animation-iteration-count: 1 !important; transition: none !important; }
