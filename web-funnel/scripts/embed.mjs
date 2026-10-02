@@ -1,5 +1,6 @@
 // Bundles ./public into src/site.gen.ts so the Worker serves the site itself.
 // (Workers Static Assets needs a separate upload step that some CI / proxy setups can't do; the site is ~70 KB.)
+import { createHash } from 'node:crypto';
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { extname, join } from 'node:path';
 
@@ -11,11 +12,23 @@ const TYPES = {
   '.png': 'image/png',
 };
 const dir = new URL('../public/', import.meta.url).pathname;
+const names = readdirSync(dir).sort().filter((name) => TYPES[extname(name)]);
+
+// Cache busting: pages reference scripts, styles and images as /file.js?v=<content hash>, so every deploy
+// is picked up at once even by browsers that cached the previous files (the Worker caches ?v= URLs for long).
+const versions = Object.fromEntries(
+  names.map((name) => [name, createHash('sha256').update(readFileSync(join(dir, name))).digest('hex').slice(0, 10)]),
+);
+const versioned = (html) =>
+  html.replace(/(src|href)="\/([\w.-]+\.(?:js|css|svg|png))"/g, (all, attr, file) =>
+    versions[file] ? `${attr}="/${file}?v=${versions[file]}"` : all,
+  );
+
 const files = {};
-for (const name of readdirSync(dir).sort()) {
+for (const name of names) {
   const type = TYPES[extname(name)];
-  if (!type) continue;
-  const buf = readFileSync(join(dir, name));
+  let buf = readFileSync(join(dir, name));
+  if (type.startsWith('text/html')) buf = Buffer.from(versioned(buf.toString('utf8')));
   // Unfilled template fields (e.g. {{ADDRESS}} in tokushoho.html) must never go live.
   const unfilled = type.startsWith('text/html') && buf.toString('utf8').match(/\{\{[A-Z_]+\}\}/g);
   if (unfilled) throw new Error(`${name} has unfilled fields: ${[...new Set(unfilled)].join(', ')}`);

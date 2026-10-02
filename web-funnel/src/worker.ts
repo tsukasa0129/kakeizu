@@ -16,7 +16,7 @@ function forStaging(html: string): string {
 }
 
 /** Pretty URLs: / → index.html, /success → success.html. Unknown paths get 404.html. */
-function serveSite(pathname: string, staging: boolean): Response {
+function serveSite(pathname: string, staging: boolean, versioned: boolean): Response {
   const path = pathname === '/' ? '/index.html' : SITE[pathname] ? pathname : `${pathname.replace(/\/$/, '')}.html`;
   const file = SITE[path];
   const found = file ?? SITE['/404.html'];
@@ -26,8 +26,9 @@ function serveSite(pathname: string, staging: boolean): Response {
     status: file ? 200 : 404,
     headers: {
       'content-type': found.type,
-      // Pages revalidate so copy changes show up at once; scripts, styles and images can be cached briefly.
-      'cache-control': found.type.startsWith('text/html') ? 'public, max-age=0, must-revalidate' : 'public, max-age=3600',
+      // Pages always revalidate. Pages load scripts, styles and images as ?v=<content hash> (scripts/embed.mjs),
+      // so those URLs never change content and can be cached for good; anything requested without it revalidates.
+      'cache-control': found.type.startsWith('text/html') || !versioned ? 'public, max-age=0, must-revalidate' : 'public, max-age=31536000, immutable',
       ...(staging ? { 'x-robots-tag': 'noindex, nofollow' } : {}),
     },
   });
@@ -75,7 +76,7 @@ export default {
           { headers: { 'cache-control': 'public, max-age=300' } },
         );
       default:
-        return serveSite(url.pathname, env.ENVIRONMENT === 'staging');
+        return serveSite(url.pathname, env.ENVIRONMENT === 'staging', url.searchParams.has('v'));
     }
   },
 } satisfies ExportedHandler<Env>;
