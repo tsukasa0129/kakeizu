@@ -48,9 +48,9 @@ const PLAN_LABEL: Partial<Record<PACKAGE_TYPE, string>> = {
   [PACKAGE_TYPE.WEEKLY]: '週額',
 };
 
-// Replace with your own URLs before release.
-const TERMS_URL = 'https://example.com/terms';
-const PRIVACY_URL = 'https://example.com/privacy';
+// Published with the web funnel (web-funnel/public/terms.html, privacy.html).
+const TERMS_URL = 'https://kakeizu-quest.app/terms';
+const PRIVACY_URL = 'https://kakeizu-quest.app/privacy';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 // Local notifications don't exist on web, so the reminder is only promised on iOS / Android.
