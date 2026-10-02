@@ -1,5 +1,10 @@
 This is an Expo/React Native mobile application. Prioritize mobile-first patterns, performance, and cross-platform compatibility.
 
+## 言語
+
+- ユーザーへの返答・質問・作業報告は、常に日本語で書く（途中経過の短い報告も含む）。
+- コミットメッセージ、README などのドキュメント、アプリやサイトの文言も日本語で書く。コード中のコメントは周りに合わせる。
+
 ## Expo has changed — do not trust your training data
 
 Expo ships breaking changes every SDK release. APIs you remember are likely renamed, moved, or removed. Before writing any code that touches an Expo, EAS, or React Native API:
