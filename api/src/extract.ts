@@ -1,29 +1,50 @@
-// POST /extract — 戸籍の画像を Claude で読み取り、家系図用の JSON にする（旧 Supabase Edge Function）。
+// POST /extract — 戸籍の画像を Workers AI で読み取り、家系図用の JSON にする。
 //   { images: [{ mediaType: "image/jpeg", data: "<base64>" }, ...] } → 200 { result: ExtractionResult } | 4xx/5xx { error }
-// 画像はメモリ上で処理するだけで保存しない。API キーは Worker のシークレット ANTHROPIC_API_KEY。
+//
+// 2段階で読む（DeepSeek は画像を読めないため）:
+//   1. 書き起こし: ビジョンモデル（Qwen 3.8 27B）が画像の文字をそのままテキストにする
+//   2. 構造化:     DeepSeek V4 Pro が書き起こしを読み、スキーマどおりの JSON にする
+// 画像はメモリ上で処理するだけで保存しない。
 
-import Anthropic from '@anthropic-ai/sdk';
-import { betaZodOutputFormat } from '@anthropic-ai/sdk/helpers/beta/zod';
+import { z } from 'zod';
 
 import { ExtractionResult } from './extractionSchema';
+
+const VISION_MODEL = '@cf/qwen/qwen3.8-27b';
+const STRUCTURE_MODEL = '@cf/deepseek-ai/deepseek-v4-pro-0813';
 
 const MAX_IMAGES = 6;
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // per image, after base64 decoding
 const ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
-const SYSTEM_PROMPT = `あなたは日本の戸籍（戸籍謄本・全部事項証明書、除籍謄本、改製原戸籍謄本、明治・大正期の手書き戸籍を含む）を正確に読み取る専門家です。
-ユーザーが家系図を作るために、画像に書かれている内容を構造化データに変換してください。
+const TRANSCRIBE_PROMPT = `あなたは日本の戸籍（戸籍謄本・全部事項証明書、除籍謄本、改製原戸籍謄本、明治・大正期の手書き戸籍を含む）を正確に書き起こす専門家です。
+画像に書かれている文字を、要約や解釈をせずにすべてテキストに書き起こしてください。
 
-読み取りのルール:
-- 画像に書かれていることだけを出力し、推測で人物や日付を作らないこと。読めない箇所は null にして warnings に日本語で理由を書く。
+書き起こしのルール:
+- 本籍・筆頭者（戸主）・各人の欄・身分事項・父母欄・続柄・生年月日・従前戸籍など、書かれている順に書き写す。欄の区切りがわかるように改行し、各人の欄の前には「---」を入れる。
+- 漢数字・大字（壱・弐・参・拾など）、旧字体・異体字は書類どおりの字で書く。
+- 名前に×印がある、または消除の記載がある場合は「（×印あり）」と書き添える。
+- 読めない文字は「〓」にし、推測で補わない。
+- 複数ページの場合は「=== 1ページ目 ===」のようにページを区切る。
+- 書き起こし以外の説明は書かない。`;
+
+const STRUCTURE_PROMPT = `あなたは日本の戸籍を読み解く専門家です。
+戸籍の画像を書き起こしたテキストを読み、家系図を作るための構造化データ（JSON）に変換してください。
+書き起こしの「〓」は読めなかった文字です。
+
+変換のルール:
+- 書き起こしに書かれていることだけを出力し、推測で人物や日付を作らないこと。読めない・判断できない箇所は null にして warnings に日本語で理由を書く。
 - 1つの戸籍が複数ページに分かれている場合は、1つの書類としてまとめる。
 - 戸籍に記載された各人（筆頭者・戸主・配偶者・子など）を persons に1人ずつ入れる。tempId は "p1", "p2" … とする。
 - 父母欄の父・母の名前は fatherName / motherName に書かれたとおりに入れる。その父母が同じ書類に記載されている場合は fatherTempId / motherTempId でつなぐ。配偶者も同様に spouseTempId でつなぐ。
 - 日付は書かれたとおり（漢数字・大字もそのまま）を *Text に、西暦に変換できるものは YYYY-MM-DD で *Iso に入れる。元年や改元日の境界に注意する（明治=1868, 大正=1912, 昭和=1926, 平成=1989, 令和=2019 が元年）。
 - 名前に×印がある、または除籍の記載がある人は isRemoved を true にする。
 - 「従前戸籍」「転籍」「入籍」「婚姻により〜から入籍」などに書かれた、ひとつ前の戸籍の本籍と筆頭者を previousRegisters に入れる。これは利用者が次に役所へ請求する戸籍になるので、正確に書き写すこと。
-- 旧字体・異体字は、できるだけ書類どおりの字で書く。
-- 性別は続柄（長男・二女・妻など）や記載から判断し、判断できない場合は unknown。`;
+- 旧字体・異体字は、書き起こしどおりの字で書く。
+- 性別は続柄（長男・二女・妻など）や記載から判断し、判断できない場合は unknown。
+- 書き起こしが戸籍ではない場合は、persons を空にして warnings に「戸籍の書類ではないようです」と書く。`;
+
+const { $schema: _draft, ...RESULT_JSON_SCHEMA } = z.toJSONSchema(ExtractionResult) as Record<string, unknown>;
 
 type ImageInput = { mediaType: 'image/jpeg' | 'image/png' | 'image/webp'; data: string };
 
@@ -47,50 +68,80 @@ export function validateImages(body: unknown): ImageInput[] {
   return images as ImageInput[];
 }
 
-export async function extractKoseki(images: ImageInput[], apiKey: string) {
-  const client = new Anthropic({ apiKey });
-  try {
-    const response = await client.beta.messages.parse({
-      model: 'claude-opus-5',
-      max_tokens: 16000,
-      thinking: { type: 'adaptive' },
-      output_config: { effort: 'high', format: betaZodOutputFormat(ExtractionResult) },
-      // Re-run on Anthropic's recommended fallback model if the primary model declines.
-      betas: ['server-side-fallback-2026-07-01'],
-      fallbacks: 'default',
-      system: SYSTEM_PROMPT,
-      messages: [
-        {
-          role: 'user',
-          content: [
-            ...images.flatMap((img, i) => [
-              { type: 'text' as const, text: `${i + 1}ページ目:` },
-              { type: 'image' as const, source: { type: 'base64' as const, media_type: img.mediaType, data: img.data } },
-            ]),
-            { type: 'text', text: 'この戸籍を読み取り、指定のスキーマで出力してください。' },
-          ],
-        },
-      ],
-    });
+/** Text of the first choice; throws a user-facing error when the model stopped early or returned nothing. */
+function firstChoiceText(output: { choices?: { message?: { content?: unknown }; finish_reason?: string | null }[] }) {
+  const choice = output.choices?.[0];
+  if (choice?.finish_reason === 'length') {
+    throw new ExtractError(422, '書類が長すぎて読み取りきれませんでした。ページを分けてお試しください。');
+  }
+  const content = choice?.message?.content;
+  if (typeof content !== 'string' || !content.trim()) throw new ExtractError(502, 'AIから結果が返ってきませんでした。もう一度お試しください。');
+  return content;
+}
 
-    if (response.stop_reason === 'refusal') {
-      throw new ExtractError(422, 'この画像は読み取れませんでした。戸籍の書類を撮影してください。');
-    }
-    if (response.stop_reason === 'max_tokens' || !response.parsed_output) {
-      throw new ExtractError(422, '書類が長すぎて読み取りきれませんでした。ページを分けてお試しください。');
-    }
-    return response.parsed_output;
+async function runModel<T>(task: () => Promise<T>): Promise<T> {
+  try {
+    return await task();
   } catch (e) {
     if (e instanceof ExtractError) throw e;
-    if (e instanceof Anthropic.RateLimitError) throw new ExtractError(429, '混み合っています。しばらくしてからお試しください。');
-    if (e instanceof Anthropic.BadRequestError) {
-      console.error('bad request', e.message);
-      throw new ExtractError(400, '画像を処理できませんでした。');
-    }
-    if (e instanceof Anthropic.APIError) {
-      console.error('anthropic api error', e.status, e.message);
-      throw new ExtractError(502, 'AIサービスでエラーが発生しました。');
-    }
-    throw e;
+    console.error('workers ai error', e);
+    throw new ExtractError(502, 'AIサービスでエラーが発生しました。しばらくしてからお試しください。');
   }
+}
+
+export async function extractKoseki(images: ImageInput[], ai: Ai) {
+  // 1. 書き起こし（ビジョンモデル）
+  const transcription = firstChoiceText(
+    await runModel(() =>
+      ai.run(VISION_MODEL, {
+        messages: [
+          { role: 'system', content: TRANSCRIBE_PROMPT },
+          {
+            role: 'user',
+            content: [
+              ...images.flatMap((img, i) => [
+                { type: 'text' as const, text: `${i + 1}ページ目:` },
+                { type: 'image_url' as const, image_url: { url: `data:${img.mediaType};base64,${img.data}`, detail: 'high' as const } },
+              ]),
+              { type: 'text', text: 'この戸籍の画像を書き起こしてください。' },
+            ],
+          },
+        ],
+        reasoning_effort: 'medium',
+        max_tokens: 16000,
+      }),
+    ),
+  );
+
+  // 2. 構造化（DeepSeek）
+  const json = firstChoiceText(
+    await runModel(() =>
+      ai.run(STRUCTURE_MODEL, {
+        messages: [
+          { role: 'system', content: STRUCTURE_PROMPT },
+          { role: 'user', content: `戸籍の書き起こし:\n\n${transcription}` },
+        ],
+        response_format: {
+          type: 'json_schema',
+          json_schema: { name: 'koseki_extraction', schema: RESULT_JSON_SCHEMA, strict: true },
+        },
+        reasoning_effort: 'high',
+        max_tokens: 32000,
+      }),
+    ),
+  );
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(json.replace(/^```(?:json)?\s*|\s*```$/g, ''));
+  } catch {
+    console.error('structure model returned non-JSON', json.slice(0, 500));
+    throw new ExtractError(502, '読み取り結果を整理できませんでした。もう一度お試しください。');
+  }
+  const result = ExtractionResult.safeParse(parsed);
+  if (!result.success) {
+    console.error('structure model output does not match schema', result.error.message.slice(0, 500));
+    throw new ExtractError(502, '読み取り結果を整理できませんでした。もう一度お試しください。');
+  }
+  return result.data;
 }

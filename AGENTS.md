@@ -5,6 +5,12 @@ This is an Expo/React Native mobile application. Prioritize mobile-first pattern
 - ユーザーへの返答・質問・作業報告は、常に日本語で書く（途中経過の短い報告も含む）。
 - コミットメッセージ、README などのドキュメント、アプリやサイトの文言も日本語で書く。コード中のコメントは周りに合わせる。
 
+## AI モデル
+
+- AI の機能は、原則として Cloudflare Workers AI の DeepSeek（例：`@cf/deepseek-ai/deepseek-v4-pro-0813`）で作る。API の Worker（`api/`）から `ai` バインディングで呼び、外部の AI API キーは使わない。
+- DeepSeek ができないこと（画像を読むなど）だけ、Workers AI のほかのモデルを使う（例：画像の書き起こしに `@cf/qwen/qwen3.8-27b`）。
+- 使えるモデルと入力の形は変わるので、Cloudflare のドキュメントと `wrangler types` で生成される型で確認してから書く。
+
 ## Expo has changed — do not trust your training data
 
 Expo ships breaking changes every SDK release. APIs you remember are likely renamed, moved, or removed. Before writing any code that touches an Expo, EAS, or React Native API:

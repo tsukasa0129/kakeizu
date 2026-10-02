@@ -1,12 +1,12 @@
 # 家系図クエスト（kakeizu）
 
 Duolingo のようなゲーミフィケーションで、家系図の空欄を埋めていくアプリです。
-役所で取った戸籍を撮影すると AI（Claude）が JSON に変換し、家系図 UI に自動で配置します。
+役所で取った戸籍を撮影すると AI（Cloudflare Workers AI の DeepSeek ほか）が JSON に変換し、家系図 UI に自動で配置します。
 戸籍の取り方（本籍地の調べ方・広域交付・コンビニ交付・郵送請求・さかのぼり方）もアプリ内でナビゲーションします。
 
 - **React Native + Expo SDK 57**（Expo Router / TypeScript）
 - **RevenueCat**（`react-native-purchases`）でプレミアム課金
-- **Cloudflare Workers + D1**（`api/`）で戸籍画像 → JSON（Claude API）、アカウント（メール＋6桁コード）と家系図データのクラウド同期
+- **Cloudflare Workers + D1**（`api/`）で戸籍画像 → JSON（Workers AI：DeepSeek V4 Pro ＋ 画像の書き起こしに Qwen 3.8）、アカウント（メール＋6桁コード）と家系図データのクラウド同期
 - サーバーはすべて Cloudflare（API・web2app ファネル・ドメイン・メールの送受信）
 
 ## 画面と機能
@@ -59,7 +59,7 @@ Appllama で売上上位のハードペイウォール型アプリ（Cal AI な�
 ### スキャン → JSON → 家系図 の流れ
 
 1. `src/app/scan.tsx` で撮影/選択（最大6ページ）。長辺2000pxの JPEG に縮小して送信
-2. API の `POST /extract`（`api/src/extract.ts`、Cloudflare Workers）が Claude（`claude-opus-5`、構造化出力）で読み取り
+2. API の `POST /extract`（`api/src/extract.ts`、Cloudflare Workers AI）が読み取り（ビジョンモデルで書き起こし → DeepSeek で構造化）
    - 人物・続柄・和暦/西暦の日付・父母欄・配偶者リンク・除籍（×印）
    - **従前戸籍**（次に請求すべき戸籍）も抽出 → 役所ナビに自動追加
 3. `src/lib/merge.ts` が登録済みの人物と名前で照合し、父母/配偶者リンクをたどって家系図の位置を自動推定
@@ -227,14 +227,13 @@ npm run deploy          # 本番 https://kakeizu-quest.app と https://kakeizu-f
 
 #### AI 読み取り（`POST /extract`）
 
-戸籍の画像（最大6枚・1枚5MBまで）を受け取り、Claude（`claude-opus-5`、構造化出力、拒否されたときは Anthropic 推奨のモデルで再実行）で JSON にして返します（`api/src/extract.ts`）。
+戸籍の画像（最大6枚・1枚5MBまで）を受け取り、Cloudflare Workers AI で JSON にして返します（`api/src/extract.ts`）。AI モデルは原則 DeepSeek を使いますが、Workers AI の DeepSeek は画像を読めないので2段階にしています。
+
+1. **書き起こし**：ビジョンモデル `@cf/qwen/qwen3.8-27b` が画像の文字を、要約せずにそのままテキストにする（読めない字は「〓」）
+2. **構造化**：`@cf/deepseek-ai/deepseek-v4-pro-0813` が書き起こしを読み、`extractionSchema.ts` のスキーマどおりの JSON にする（`response_format` の JSON Schema。返ってきた JSON は Zod で検証）
+
 画像はメモリ上で処理するだけで保存しません。ログインは不要です（課金の確認はアプリ側）。乱用を防ぐため、同じ IP から1時間30回までにしています。
-
-Anthropic の API キーは Worker のシークレットに置き、アプリには入れません。**未設定のあいだは「AI読み取りの準備中です」を返します。**
-
-```bash
-cd api && npx wrangler secret put ANTHROPIC_API_KEY   # Cloudflare ダッシュボード → Workers → kakeizu-api → 設定 → 変数とシークレット でも可
-```
+Workers AI は `wrangler.jsonc` の `ai` バインディングで使うので、API キーは不要です（料金は Cloudflare の請求に含まれる。DeepSeek V4 Pro は Workers 有料プランが必要）。
 
 #### アカウントと同期
 
@@ -252,9 +251,9 @@ cd api && npx wrangler secret put ANTHROPIC_API_KEY   # Cloudflare ダッシュ�
 | ファイル | 内容 |
 | --- | --- |
 | `api/src/worker.ts` | API 本体（`/extract` `/auth/code` `/auth/verify` `/auth/logout` `/me` `/me/data`）。エンドポイントの説明は冒頭のコメント |
-| `api/src/extract.ts` / `extractionSchema.ts` | AI 読み取り（プロンプト・Claude の呼び出し・出力スキーマ） |
+| `api/src/extract.ts` / `extractionSchema.ts` | AI 読み取り（プロンプト・Workers AI の呼び出し・出力スキーマ） |
 | `api/migrations/` | D1 のスキーマ（`users` / `login_codes` / `code_sends` / `sessions` / `user_data` / `extract_requests`） |
-| `api/wrangler.jsonc` | D1 `kakeizu-db`（アジア太平洋）、メール送信の `send_email` バインディング、`api.kakeizu-quest.app` のカスタムドメイン |
+| `api/wrangler.jsonc` | D1 `kakeizu-db`（アジア太平洋）、Workers AI の `ai` バインディング、メール送信の `send_email` バインディング、`api.kakeizu-quest.app` のカスタムドメイン |
 
 Cloudflare 側の設定（作成済み）:
 

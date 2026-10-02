@@ -6,7 +6,7 @@
 //   DELETE /me                             → アカウントと保存データをすべて削除
 //   GET    /me/data                        → { data, version, updatedAt }（未保存なら data: null, version: 0）
 //   PUT    /me/data  { data, baseVersion } → { version, updatedAt }。baseVersion が古ければ 409 と最新の内容
-//   POST   /extract  { images }           → { result }（戸籍画像の AI 読み取り。ログイン不要。src/extract.ts）
+//   POST   /extract  { images }           → { result }（戸籍画像の AI 読み取り。Workers AI。ログイン不要。src/extract.ts）
 // 認証は Authorization: Bearer <token>（Cookie は使わないので CORS は * で問題ない）。
 
 import { extractKoseki, ExtractError, validateImages } from './extract';
@@ -244,7 +244,6 @@ async function deleteAccount(user: { id: string }, env: Env) {
 }
 
 async function extract(request: Request, env: Env) {
-  if (!env.ANTHROPIC_API_KEY) throw new HttpError(503, 'AI読み取りの準備中です。しばらくしてからお試しください');
   const images = validateImages(await request.json().catch(() => null));
 
   // Abuse guard: the endpoint is open (the paywall is enforced in the app), so cap requests per IP.
@@ -261,7 +260,7 @@ async function extract(request: Request, env: Env) {
     env.DB.prepare('DELETE FROM extract_requests WHERE requested_at < ?').bind(now - 24 * HOUR_MS),
   ]);
 
-  return json({ result: await extractKoseki(images, env.ANTHROPIC_API_KEY) });
+  return json({ result: await extractKoseki(images, env.AI) });
 }
 
 async function route(request: Request, env: Env): Promise<Response> {

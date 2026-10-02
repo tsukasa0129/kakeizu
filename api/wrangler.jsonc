@@ -17,6 +17,8 @@
   ],
   // Cloudflare Email Service（Email Sending）。送信元のドメイン kakeizu-quest.app は Email Sending に登録済み。
   "send_email": [{ "name": "EMAIL" }],
+  // Workers AI（戸籍の AI 読み取り。画像の書き起こし → DeepSeek で構造化）
+  "ai": { "binding": "AI" },
   "vars": {
     "MAIL_FROM": "noreply@kakeizu-quest.app"
   }
