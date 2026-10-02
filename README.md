@@ -157,6 +157,7 @@ RevenueCat プロジェクト「家系図クエスト」は設定済みです（
 | Worker | `kakeizu-funnel` | `kakeizu-funnel-staging`（`wrangler.jsonc` の `env.staging`） |
 | 自動デプロイ（Workers Builds） | `main` に push（`web-funnel/` に変更があるとき）→ `npm run deploy` | `staging` に push → `npm run deploy:staging` |
 | 決済 | 本番の Web Purchase Link | ステージング用 Web Purchase Link の Sandbox URL（Stripe のテストカード） |
+| アクセス制限 | なし（公開） | Cloudflare Access（アプリ `kakeizu-funnel-staging`）。開発者のメールのワンタイムPIN、またはエージェント・自動テスト用のサービストークン（`CF-Access-Client-Id` / `CF-Access-Client-Secret` ヘッダー）でのみ開ける。workers.dev の URL も同じく保護 |
 | その他 | | 上部に「STAGING（テスト環境）」の帯。`noindex` で検索に載せない。GA4 / Meta Pixel にはイベントを送らない（`dataLayer` には入る） |
 
 変更はまず `staging` ブランチに push してステージングで確認し、問題なければ `main` にマージして本番に出します。
