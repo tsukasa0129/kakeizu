@@ -6,8 +6,8 @@ Duolingo のようなゲーミフィケーションで、家系図の空欄を�
 
 - **React Native + Expo SDK 57**（Expo Router / TypeScript）
 - **RevenueCat**（`react-native-purchases`）でプレミアム課金
-- **Supabase Edge Function + Claude API** で戸籍画像 → JSON
-- **Cloudflare Workers + D1**（`api/`）でアカウント（メール＋6桁コード）と家系図データのクラウド同期
+- **Cloudflare Workers + D1**（`api/`）で戸籍画像 → JSON（Claude API）、アカウント（メール＋6桁コード）と家系図データのクラウド同期
+- サーバーはすべて Cloudflare（API・web2app ファネル・ドメイン・メールの送受信）
 
 ## 画面と機能
 
@@ -59,14 +59,14 @@ Appllama で売上上位のハードペイウォール型アプリ（Cal AI な�
 ### スキャン → JSON → 家系図 の流れ
 
 1. `src/app/scan.tsx` で撮影/選択（最大6ページ）。長辺2000pxの JPEG に縮小して送信
-2. `supabase/functions/extract-koseki` が Claude（`claude-opus-5`、構造化出力）で読み取り
+2. API の `POST /extract`（`api/src/extract.ts`、Cloudflare Workers）が Claude（`claude-opus-5`、構造化出力）で読み取り
    - 人物・続柄・和暦/西暦の日付・父母欄・配偶者リンク・除籍（×印）
    - **従前戸籍**（次に請求すべき戸籍）も抽出 → 役所ナビに自動追加
 3. `src/lib/merge.ts` が登録済みの人物と名前で照合し、父母/配偶者リンクをたどって家系図の位置を自動推定
    （書類にいない親も「父母欄」の名前から1世代上に追加）
 4. 確認画面で位置を修正して「家系図に追加」→ XP・バッジ
 
-JSON の形は `src/types/extraction.ts`（アプリ側）と `supabase/functions/extract-koseki/schema.ts`（サーバー側 Zod）で定義しています。
+JSON の形は `src/types/extraction.ts`（アプリ側）と `api/src/extractionSchema.ts`（サーバー側 Zod）で定義しています。
 
 ## セットアップ
 
@@ -76,7 +76,7 @@ cp .env.example .env   # 値を設定
 npx expo start
 ```
 
-`.env` を設定しない場合は **デモモード** で動きます（スキャンするとサンプルの戸籍結果が返り、課金画面はキー未設定の案内を表示）。
+`.env` を設定しない場合、課金画面はキー未設定の案内を表示します。AI 読み取りは本番の API を呼ぶので、画像を送らずに試すときは `EXPO_PUBLIC_EXTRACT_DEMO=1`（**デモモード**：サンプルの戸籍結果を返す）を設定します。
 RevenueCat はネイティブモジュールを含むため、課金を試すには開発ビルドが必要です：
 
 ```bash
@@ -223,7 +223,20 @@ npm run deploy          # 本番 https://kakeizu-quest.app と https://kakeizu-f
 - App Store の商品ページやアプリ内に、このファネル（Web で安く買える等）への誘導を書いてはいけません（アプリ内の Stripe は上の「iOS で Stripe を並べて表示」の条件どおりに）
 - Redemption Link はアプリをインストールしたスマホで開く必要があります。PC で購入した人は、購入完了メールのリンクをスマホで開いてもらいます
 
-### アカウントと同期（`api/`・Cloudflare Workers + D1・https://api.kakeizu-quest.app ）
+### API：AI 読み取り・アカウント・同期（`api/`・Cloudflare Workers + D1・https://api.kakeizu-quest.app ）
+
+#### AI 読み取り（`POST /extract`）
+
+戸籍の画像（最大6枚・1枚5MBまで）を受け取り、Claude（`claude-opus-5`、構造化出力、拒否されたときは Anthropic 推奨のモデルで再実行）で JSON にして返します（`api/src/extract.ts`）。
+画像はメモリ上で処理するだけで保存しません。ログインは不要です（課金の確認はアプリ側）。乱用を防ぐため、同じ IP から1時間30回までにしています。
+
+Anthropic の API キーは Worker のシークレットに置き、アプリには入れません。**未設定のあいだは「AI読み取りの準備中です」を返します。**
+
+```bash
+cd api && npx wrangler secret put ANTHROPIC_API_KEY   # Cloudflare ダッシュボード → Workers → kakeizu-api → 設定 → 変数とシークレット でも可
+```
+
+#### アカウントと同期
 
 ログインは任意です。ログインすると家系図と進捗がクラウドに保存され、機種変更やほかの端末・Web 版でも続きから使えます。
 ログインしていない間は、これまでどおり端末の中だけに保存します。
@@ -238,13 +251,14 @@ npm run deploy          # 本番 https://kakeizu-quest.app と https://kakeizu-f
 
 | ファイル | 内容 |
 | --- | --- |
-| `api/src/worker.ts` | API 本体（`/auth/code` `/auth/verify` `/auth/logout` `/me` `/me/data`）。エンドポイントの説明は冒頭のコメント |
-| `api/migrations/` | D1 のスキーマ（`users` / `login_codes` / `code_sends` / `sessions` / `user_data`） |
+| `api/src/worker.ts` | API 本体（`/extract` `/auth/code` `/auth/verify` `/auth/logout` `/me` `/me/data`）。エンドポイントの説明は冒頭のコメント |
+| `api/src/extract.ts` / `extractionSchema.ts` | AI 読み取り（プロンプト・Claude の呼び出し・出力スキーマ） |
+| `api/migrations/` | D1 のスキーマ（`users` / `login_codes` / `code_sends` / `sessions` / `user_data` / `extract_requests`） |
 | `api/wrangler.jsonc` | D1 `kakeizu-db`（アジア太平洋）、メール送信の `send_email` バインディング、`api.kakeizu-quest.app` のカスタムドメイン |
 
 Cloudflare 側の設定（作成済み）:
 
-- D1 データベース `kakeizu-db`（`33681c52-29be-4cd0-b65c-f80156b35f2d`、場所のヒントは APAC）。`0001_init.sql` は適用済み
+- D1 データベース `kakeizu-db`（`33681c52-29be-4cd0-b65c-f80156b35f2d`、場所のヒントは APAC）。`0001_init.sql`・`0002_extract_requests.sql` は適用済み
 - Email Service の Email Sending に `kakeizu-quest.app` を登録済み（送信元 `noreply@kakeizu-quest.app`。`cf-bounce` の MX・SPF・DKIM と DMARC は自動で追加された）。Email Sending は Workers 有料プランの機能
 - Workers Builds: `main` への push で `api/` が変わると自動でデプロイ（ファネルと同じ仕組み）
 
@@ -258,17 +272,6 @@ npm run deploy
 ```
 
 アプリから開発用の API を使うときは `.env` に `EXPO_PUBLIC_API_URL=http://localhost:8787` を設定します（未設定なら本番の https://api.kakeizu-quest.app ）。
-
-### Supabase Edge Function（AI 読み取り）
-
-```bash
-supabase functions deploy extract-koseki
-supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
-```
-
-`.env` に `EXPO_PUBLIC_EXTRACT_URL=https://<project-ref>.supabase.co/functions/v1/extract-koseki` と
-`EXPO_PUBLIC_SUPABASE_ANON_KEY` を設定します。API キーはサーバー側だけに置き、アプリには入れません。
-画像はメモリ上で処理するだけで保存しません。
 
 ## EAS Build
 
@@ -312,9 +315,7 @@ Photomyne のスキャン画面などを調査し、次のパターンを取り�
 
 ## 本番前に対応が必要なこと
 
-- **課金チェックはアプリ側のみ**です。本番では Edge Function 側でも、RevenueCat の REST API / Webhook で
-  ユーザーの entitlement を確認してから AI 読み取りを実行してください。
 - 利用規約・プライバシーポリシーは https://kakeizu-quest.app/terms ・ /privacy に公開済みです（`web-funnel/public/`）。内容を変えたら `cd web-funnel && npm run deploy` で反映してください。問い合わせ先 support@kakeizu-quest.app は Cloudflare Email Routing で運営者の Gmail に転送しています。
 - 戸籍制度の説明（手数料・広域交付の範囲など）は一般的な内容です。自治体により異なる場合があるため、アプリ内でも確認を促しています。
 - 戸籍は機微な個人情報です。ストア審査用のプライバシー表記を用意してください。ログインした場合はメールアドレスと家系図のデータ（氏名・生年月日など）を当方のサーバー（Cloudflare）に保存するので、App Store の「App のプライバシー」と Google Play の「データ セーフティ」では「収集する（アカウントにひもづく・トラッキングには使わない）」として申告し、アカウント削除の方法（プロフィール → アカウントを削除）も記載してください。
-- AI 読み取り（Supabase）はまだアカウントと連携していません。`api/` の Worker に読み取りを移すと、ログイン中のユーザーの entitlement を RevenueCat で確認してから実行できます。
+- **課金チェックはアプリ側のみ**です。AI 読み取り（`/extract`）はサーバー側で課金を確認していません（サーバー側は IP ごとの回数制限のみ）。本番では RevenueCat のシークレットキーを Worker に置き、ログイン中のユーザーの entitlement を確認してから実行するようにしてください。

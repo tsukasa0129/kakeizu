@@ -10,6 +10,7 @@ import { Icon } from '@/components/Icon';
 import { Mascot, MascotSays } from '@/components/Mascot';
 import { ExtractError, extractKoseki, isDemoMode, type PageImage } from '@/lib/extract';
 import { applyMerge, propagate, suggestAssignment, type Assignment } from '@/lib/merge';
+import { notify } from '@/lib/notify';
 import { awardProgress } from '@/lib/progress';
 import { MAX_GENERATION, generationOf, relationLabel, slotsUpTo } from '@/lib/slots';
 import { useFamily } from '@/store/family';
@@ -63,7 +64,7 @@ export default function ScanScreen() {
       setPhase('review');
     } catch (e) {
       setPhase('pick');
-      Alert.alert('読み取れませんでした', e instanceof ExtractError ? e.message : '通信状況を確認して、もう一度お試しください。');
+      notify('読み取れませんでした', e instanceof ExtractError ? e.message : '通信状況を確認して、もう一度お試しください。');
     }
   };
 

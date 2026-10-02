@@ -1,5 +1,5 @@
-// Shape returned by the extract-koseki Edge Function.
-// Keep in sync with supabase/functions/extract-koseki/schema.ts.
+// Shape returned by the API's /extract (AI reading of koseki images).
+// Keep in sync with api/src/extractionSchema.ts.
 import type { DocumentType, Gender } from './family';
 
 export type EventKind =

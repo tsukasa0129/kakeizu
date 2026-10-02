@@ -1,16 +1,11 @@
-// Supabase Edge Function: koseki (戸籍) images → structured JSON via Claude.
-//
-// POST { images: [{ mediaType: "image/jpeg", data: "<base64>" }, ...] }
-// → 200 { result: ExtractionResult } | 4xx/5xx { error: string }
-//
-// Images are processed in memory only and never stored.
-// Deploy: supabase functions deploy extract-koseki
-// Secret: supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
+// POST /extract — 戸籍の画像を Claude で読み取り、家系図用の JSON にする（旧 Supabase Edge Function）。
+//   { images: [{ mediaType: "image/jpeg", data: "<base64>" }, ...] } → 200 { result: ExtractionResult } | 4xx/5xx { error }
+// 画像はメモリ上で処理するだけで保存しない。API キーは Worker のシークレット ANTHROPIC_API_KEY。
 
-import Anthropic from 'npm:@anthropic-ai/sdk@0.128.0';
-import { betaZodOutputFormat } from 'npm:@anthropic-ai/sdk@0.128.0/helpers/beta/zod';
+import Anthropic from '@anthropic-ai/sdk';
+import { betaZodOutputFormat } from '@anthropic-ai/sdk/helpers/beta/zod';
 
-import { ExtractionResult } from './schema.ts';
+import { ExtractionResult } from './extractionSchema';
 
 const MAX_IMAGES = 6;
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // per image, after base64 decoding
@@ -30,41 +25,30 @@ const SYSTEM_PROMPT = `あなたは日本の戸籍（戸籍謄本・全部事項
 - 旧字体・異体字は、できるだけ書類どおりの字で書く。
 - 性別は続柄（長男・二女・妻など）や記載から判断し、判断できない場合は unknown。`;
 
-const client = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY') });
+type ImageInput = { mediaType: 'image/jpeg' | 'image/png' | 'image/webp'; data: string };
 
-const json = (body: unknown, status = 200) =>
-  new Response(JSON.stringify(body), {
-    status,
-    headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-  });
+export class ExtractError extends Error {
+  constructor(
+    readonly status: number,
+    message: string,
+  ) {
+    super(message);
+  }
+}
 
-type ImageInput = { mediaType: string; data: string };
-
-function validate(body: unknown): ImageInput[] | string {
-  const images = (body as { images?: unknown })?.images;
-  if (!Array.isArray(images) || images.length === 0) return '画像がありません';
-  if (images.length > MAX_IMAGES) return `画像は最大${MAX_IMAGES}枚までです`;
+export function validateImages(body: unknown): ImageInput[] {
+  const images = (body as { images?: unknown } | null)?.images;
+  if (!Array.isArray(images) || images.length === 0) throw new ExtractError(400, '画像がありません');
+  if (images.length > MAX_IMAGES) throw new ExtractError(400, `画像は最大${MAX_IMAGES}枚までです`);
   for (const img of images) {
-    if (typeof img?.data !== 'string' || !ALLOWED_TYPES.has(img?.mediaType)) return '画像の形式が不正です';
-    if ((img.data.length * 3) / 4 > MAX_IMAGE_BYTES) return '画像サイズが大きすぎます';
+    if (typeof img?.data !== 'string' || !ALLOWED_TYPES.has(img?.mediaType)) throw new ExtractError(400, '画像の形式が不正です');
+    if ((img.data.length * 3) / 4 > MAX_IMAGE_BYTES) throw new ExtractError(400, '画像サイズが大きすぎます');
   }
   return images as ImageInput[];
 }
 
-Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'authorization, apikey, content-type',
-      },
-    });
-  }
-  if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
-
-  const images = validate(await req.json().catch(() => null));
-  if (typeof images === 'string') return json({ error: images }, 400);
-
+export async function extractKoseki(images: ImageInput[], apiKey: string) {
+  const client = new Anthropic({ apiKey });
   try {
     const response = await client.beta.messages.parse({
       model: 'claude-opus-5',
@@ -79,17 +63,10 @@ Deno.serve(async (req) => {
         {
           role: 'user',
           content: [
-            ...images.map((img, i) => [
+            ...images.flatMap((img, i) => [
               { type: 'text' as const, text: `${i + 1}ページ目:` },
-              {
-                type: 'image' as const,
-                source: {
-                  type: 'base64' as const,
-                  media_type: img.mediaType as 'image/jpeg' | 'image/png' | 'image/webp',
-                  data: img.data,
-                },
-              },
-            ]).flat(),
+              { type: 'image' as const, source: { type: 'base64' as const, media_type: img.mediaType, data: img.data } },
+            ]),
             { type: 'text', text: 'この戸籍を読み取り、指定のスキーマで出力してください。' },
           ],
         },
@@ -97,25 +74,23 @@ Deno.serve(async (req) => {
     });
 
     if (response.stop_reason === 'refusal') {
-      return json({ error: 'この画像は読み取れませんでした。戸籍の書類を撮影してください。' }, 422);
+      throw new ExtractError(422, 'この画像は読み取れませんでした。戸籍の書類を撮影してください。');
     }
     if (response.stop_reason === 'max_tokens' || !response.parsed_output) {
-      return json({ error: '書類が長すぎて読み取りきれませんでした。ページを分けてお試しください。' }, 422);
+      throw new ExtractError(422, '書類が長すぎて読み取りきれませんでした。ページを分けてお試しください。');
     }
-    return json({ result: response.parsed_output });
+    return response.parsed_output;
   } catch (e) {
-    if (e instanceof Anthropic.RateLimitError) {
-      return json({ error: '混み合っています。しばらくしてからお試しください。' }, 429);
-    }
+    if (e instanceof ExtractError) throw e;
+    if (e instanceof Anthropic.RateLimitError) throw new ExtractError(429, '混み合っています。しばらくしてからお試しください。');
     if (e instanceof Anthropic.BadRequestError) {
       console.error('bad request', e.message);
-      return json({ error: '画像を処理できませんでした。' }, 400);
+      throw new ExtractError(400, '画像を処理できませんでした。');
     }
     if (e instanceof Anthropic.APIError) {
       console.error('anthropic api error', e.status, e.message);
-      return json({ error: 'AIサービスでエラーが発生しました。' }, 502);
+      throw new ExtractError(502, 'AIサービスでエラーが発生しました。');
     }
-    console.error(e);
-    return json({ error: 'サーバーエラーが発生しました。' }, 500);
+    throw e;
   }
-});
+}

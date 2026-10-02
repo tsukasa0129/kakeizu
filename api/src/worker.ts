@@ -6,7 +6,10 @@
 //   DELETE /me                             → アカウントと保存データをすべて削除
 //   GET    /me/data                        → { data, version, updatedAt }（未保存なら data: null, version: 0）
 //   PUT    /me/data  { data, baseVersion } → { version, updatedAt }。baseVersion が古ければ 409 と最新の内容
+//   POST   /extract  { images }           → { result }（戸籍画像の AI 読み取り。ログイン不要。src/extract.ts）
 // 認証は Authorization: Bearer <token>（Cookie は使わないので CORS は * で問題ない）。
+
+import { extractKoseki, ExtractError, validateImages } from './extract';
 
 const CODE_TTL_MS = 10 * 60_000;
 const MAX_CODE_ATTEMPTS = 5;
@@ -14,6 +17,7 @@ const RESEND_INTERVAL_MS = 60_000;
 const MAX_SENDS_PER_EMAIL_PER_HOUR = 5;
 const MAX_SENDS_PER_IP_PER_HOUR = 20;
 const MAX_DATA_BYTES = 1_000_000;
+const MAX_EXTRACTS_PER_IP_PER_HOUR = 30;
 const HOUR_MS = 3_600_000;
 
 const CORS = {
@@ -239,11 +243,33 @@ async function deleteAccount(user: { id: string }, env: Env) {
   return json({ ok: true });
 }
 
+async function extract(request: Request, env: Env) {
+  if (!env.ANTHROPIC_API_KEY) throw new HttpError(503, 'AI読み取りの準備中です。しばらくしてからお試しください');
+  const images = validateImages(await request.json().catch(() => null));
+
+  // Abuse guard: the endpoint is open (the paywall is enforced in the app), so cap requests per IP.
+  const ip = request.headers.get('cf-connecting-ip') ?? 'unknown';
+  const now = Date.now();
+  const recent = await env.DB.prepare('SELECT COUNT(*) AS n FROM extract_requests WHERE ip = ? AND requested_at > ?')
+    .bind(ip, now - HOUR_MS)
+    .first<{ n: number }>();
+  if ((recent?.n ?? 0) >= MAX_EXTRACTS_PER_IP_PER_HOUR) {
+    throw new HttpError(429, '読み取りの回数が多すぎます。しばらくしてからお試しください');
+  }
+  await env.DB.batch([
+    env.DB.prepare('INSERT INTO extract_requests (ip, requested_at) VALUES (?, ?)').bind(ip, now),
+    env.DB.prepare('DELETE FROM extract_requests WHERE requested_at < ?').bind(now - 24 * HOUR_MS),
+  ]);
+
+  return json({ result: await extractKoseki(images, env.ANTHROPIC_API_KEY) });
+}
+
 async function route(request: Request, env: Env): Promise<Response> {
   const { pathname } = new URL(request.url);
   const method = request.method;
   if (method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
 
+  if (pathname === '/extract' && method === 'POST') return extract(request, env);
   if (pathname === '/auth/code' && method === 'POST') return sendCode(request, env);
   if (pathname === '/auth/verify' && method === 'POST') return verifyCode(request, env);
 
@@ -268,7 +294,7 @@ export default {
     try {
       return await route(request, env);
     } catch (e) {
-      if (e instanceof HttpError) return json({ error: e.message }, e.status);
+      if (e instanceof HttpError || e instanceof ExtractError) return json({ error: e.message }, e.status);
       console.error(e);
       return json({ error: 'サーバーでエラーが発生しました。しばらくしてからお試しください' }, 500);
     }

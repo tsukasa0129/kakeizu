@@ -1,11 +1,11 @@
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 
+import { api, ApiError } from '@/lib/api';
 import type { ExtractionResult } from '@/types/extraction';
 
-const EXTRACT_URL = process.env.EXPO_PUBLIC_EXTRACT_URL;
-const ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
-
-export const isDemoMode = () => !EXTRACT_URL;
+// Reading runs on the API (api/src/extract.ts on Cloudflare Workers). EXPO_PUBLIC_EXTRACT_DEMO=1 returns
+// a built-in sample instead, so the flow can be tried without sending images or spending API credits.
+export const isDemoMode = () => process.env.EXPO_PUBLIC_EXTRACT_DEMO === '1';
 
 /** Long edge in px. Keeps kanji legible while staying well under request limits. */
 const MAX_EDGE = 2000;
@@ -30,7 +30,7 @@ async function toJpegBase64(img: PageImage) {
 export class ExtractError extends Error {}
 
 export async function extractKoseki(pages: PageImage[]): Promise<ExtractionResult> {
-  if (!EXTRACT_URL) {
+  if (isDemoMode()) {
     await new Promise((r) => setTimeout(r, 2200));
     return DEMO_RESULT;
   }
@@ -39,25 +39,15 @@ export async function extractKoseki(pages: PageImage[]): Promise<ExtractionResul
     pages.map(async (p) => ({ mediaType: 'image/jpeg' as const, data: await toJpegBase64(p) })),
   );
 
-  const res = await fetch(EXTRACT_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(ANON_KEY ? { Authorization: `Bearer ${ANON_KEY}`, apikey: ANON_KEY } : {}),
-    },
-    body: JSON.stringify({ images }),
-  });
-
-  const body = (await res.json().catch(() => null)) as
-    | { result?: ExtractionResult; error?: string }
-    | null;
-  if (!res.ok || !body?.result) {
-    throw new ExtractError(body?.error ?? `読み取りに失敗しました（${res.status}）`);
+  try {
+    const { result } = await api<{ result: ExtractionResult }>('/extract', { method: 'POST', body: { images } });
+    return result;
+  } catch (e) {
+    throw new ExtractError(e instanceof ApiError ? e.message : '読み取りに失敗しました');
   }
-  return body.result;
 }
 
-// Fictional sample used when no backend is configured, so the whole flow can be tried in Expo Go.
+// Fictional sample for demo mode.
 const DEMO_RESULT: ExtractionResult = {
   documentType: 'koseki_zenbu',
   documentTitle: '戸籍全部事項証明書（サンプル）',
@@ -133,5 +123,5 @@ const DEMO_RESULT: ExtractionResult = {
     },
   ],
   previousRegisters: [{ honseki: '静岡県あおば市もみじ町5番地', hittousha: '山田 権蔵' }],
-  warnings: ['これはデモ用のサンプルデータです。実際の書類を読み取るには EXPO_PUBLIC_EXTRACT_URL を設定してください。'],
+  warnings: ['これはデモ用のサンプルデータです。実際の書類を読み取るには EXPO_PUBLIC_EXTRACT_DEMO を外してください。'],
 };

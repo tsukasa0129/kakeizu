@@ -1,4 +1,4 @@
-import { z } from 'npm:zod@4.6.5';
+import { z } from 'zod';
 
 // Keep in sync with src/types/extraction.ts in the app.
 
