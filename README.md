@@ -6,7 +6,7 @@ Duolingo のようなゲーミフィケーションで、家系図の空欄を�
 
 - **React Native + Expo SDK 57**（Expo Router / TypeScript）
 - **RevenueCat**（`react-native-purchases`）でプレミアム課金
-- **Cloudflare Workers + D1**（`api/`）で戸籍画像 → JSON（Workers AI：DeepSeek V4 Pro ＋ 画像の書き起こしに Qwen 3.8）、アカウント（メール＋6桁コード）と家系図データのクラウド同期
+- **Cloudflare Workers + D1**（`api/`）で戸籍画像 → JSON（Workers AI：DeepSeek V4 Flash ＋ 画像の書き起こしに Qwen 3.8）、アカウント（メール＋6桁コード）と家系図データのクラウド同期
 - サーバーはすべて Cloudflare（API・web2app ファネル・ドメイン・メールの送受信）
 
 ## 画面と機能
@@ -230,7 +230,20 @@ npm run deploy          # 本番 https://kakeizu-quest.app と https://kakeizu-f
 戸籍の画像（最大6枚・1枚5MBまで）を受け取り、Cloudflare Workers AI で JSON にして返します（`api/src/extract.ts`）。AI モデルは原則 DeepSeek を使いますが、Workers AI の DeepSeek は画像を読めないので2段階にしています。
 
 1. **書き起こし**：ビジョンモデル `@cf/qwen/qwen3.8-27b` が画像の文字を、要約せずにそのままテキストにする（読めない字は「〓」）
-2. **構造化**：`@cf/deepseek-ai/deepseek-v4-pro-0813` が書き起こしを読み、`extractionSchema.ts` のスキーマどおりの JSON にする（`response_format` の JSON Schema。返ってきた JSON は Zod で検証）
+2. **構造化**：`@cf/deepseek-ai/deepseek-v4-flash-0731` が書き起こしを読み、`extractionSchema.ts` のスキーマどおりの JSON にする（JSON モード＋プロンプトに JSON Schema。返ってきた JSON は Zod で検証）
+
+所要時間は架空の戸籍1ページで30〜40秒ほどです（各段階の時間は Workers Logs に `extract: … transcribe …ms, structure …ms` で出る）。
+速さのために次のように調整しています。精度が足りないときはここを戻して比べてください。
+
+| 設定 | 今の値 | 試した結果（1ページ） |
+| --- | --- | --- |
+| 構造化のモデル | DeepSeek V4 Flash | Pro（推論 low）は構造化だけで約2分 |
+| 構造化の推論（`reasoning_effort`） | `none` | Flash の `low` で約45秒 |
+| 構造化の出力形式 | JSON モード（`json_object`） | `json_schema` の制約付き出力は推論なしでも約48秒 |
+| 書き起こしの推論 | `low` | `medium` を含め全体で3分以上 |
+
+読み取りに時間がかかるため、`/extract` はすぐに応答を始め、結果が出るまで10秒ごとに空白を送ります（スマホの通信が約1分で切れないように）。
+そのため読み取り中のエラーは HTTP 200 の `{ error }` で返ります（入力の不備と回数制限は従来どおり 4xx）。
 
 画像はメモリ上で処理するだけで保存しません。ログインは不要です（課金の確認はアプリ側）。乱用を防ぐため、同じ IP から1時間30回までにしています。
 Workers AI は `wrangler.jsonc` の `ai` バインディングで使うので、API キーは不要です（料金は Cloudflare の請求に含まれる。DeepSeek V4 Pro は Workers 有料プランが必要）。
