@@ -1,10 +1,9 @@
 // Shared by the funnel (index.html) and the post-purchase page (success.html).
 
-// 特定商取引法に基づく表記 is required for web sales in Japan; replace its URL before running ads.
 window.LEGAL = {
   terms: '/terms',
   privacy: '/privacy',
-  tokushoho: 'https://example.com/tokushoho',
+  tokushoho: '/tokushoho',
 };
 
 /** Ad / analytics hook: works with GTM (dataLayer), GA4 (gtag) and Meta Pixel (fbq) when their tags are added. */

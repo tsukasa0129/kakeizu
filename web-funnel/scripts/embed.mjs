@@ -16,6 +16,9 @@ for (const name of readdirSync(dir).sort()) {
   const type = TYPES[extname(name)];
   if (!type) continue;
   const buf = readFileSync(join(dir, name));
+  // Unfilled template fields (e.g. {{ADDRESS}} in tokushoho.html) must never go live.
+  const unfilled = type.startsWith('text/html') && buf.toString('utf8').match(/\{\{[A-Z_]+\}\}/g);
+  if (unfilled) throw new Error(`${name} has unfilled fields: ${[...new Set(unfilled)].join(', ')}`);
   files[`/${name}`] = type.startsWith('image/png') ? { type, base64: buf.toString('base64') } : { type, text: buf.toString('utf8') };
 }
 writeFileSync(
