@@ -90,6 +90,7 @@ async function runModel<T>(task: () => Promise<T>): Promise<T> {
 }
 
 export async function extractKoseki(images: ImageInput[], ai: Ai) {
+  const startedAt = Date.now();
   // 1. 書き起こし（ビジョンモデル）
   const transcription = firstChoiceText(
     await runModel(() =>
@@ -107,11 +108,14 @@ export async function extractKoseki(images: ImageInput[], ai: Ai) {
             ],
           },
         ],
-        reasoning_effort: 'medium',
+        // 書き写すだけなので推論は軽く（重くすると数分かかる）
+        reasoning_effort: 'low',
         max_tokens: 16000,
       }),
     ),
   );
+
+  const transcribedAt = Date.now();
 
   // 2. 構造化（DeepSeek）
   const json = firstChoiceText(
@@ -125,11 +129,12 @@ export async function extractKoseki(images: ImageInput[], ai: Ai) {
           type: 'json_schema',
           json_schema: { name: 'koseki_extraction', schema: RESULT_JSON_SCHEMA, strict: true },
         },
-        reasoning_effort: 'high',
+        reasoning_effort: 'low',
         max_tokens: 32000,
       }),
     ),
   );
+  console.log(`extract: ${images.length} page(s), transcribe ${transcribedAt - startedAt}ms, structure ${Date.now() - transcribedAt}ms`);
 
   let parsed: unknown;
   try {
