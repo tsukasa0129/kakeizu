@@ -7,9 +7,11 @@ window.LEGAL = {
 };
 
 /** Ad / analytics hook: works with GTM (dataLayer), GA4 (gtag) and Meta Pixel (fbq) when their tags are added. */
+// On staging (window.FUNNEL_ENV is set by the Worker) events only go to dataLayer, so test runs never reach GA4 / Meta.
 window.track = function track(event, params = {}) {
   try {
     (window.dataLayer = window.dataLayer || []).push({ event, ...params });
+    if (window.FUNNEL_ENV === 'staging') return;
     if (typeof window.gtag === 'function') window.gtag('event', event, params);
     if (typeof window.fbq === 'function') {
       const standard = { checkout_start: 'InitiateCheckout', purchase_complete: 'Purchase', lead: 'Lead' }[event];

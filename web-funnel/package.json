@@ -4,7 +4,9 @@
   "scripts": {
     "embed": "node scripts/embed.mjs",
     "dev": "npm run embed && wrangler dev",
+    "dev:staging": "npm run embed && wrangler dev --env staging",
     "deploy": "npm run embed && wrangler deploy",
+    "deploy:staging": "npm run embed && wrangler deploy --env staging",
     "typecheck": "npm run embed && wrangler types && tsc --noEmit",
     "types": "wrangler types"
   },

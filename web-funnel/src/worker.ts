@@ -5,18 +5,30 @@
 
 import { SITE } from './site.gen';
 
+// Staging (staging.kakeizu-quest.app) gets a banner on every page, stays out of search engines, and tells the pages
+// (window.FUNNEL_ENV) not to send events to the ad / analytics tags.
+const STAGING_HEAD = '<meta name="robots" content="noindex, nofollow"><script>window.FUNNEL_ENV = "staging";</script>';
+const STAGING_BANNER =
+  '<div style="position:sticky;top:0;z-index:100;background:#ff9600;color:#fff;font:800 12px/1.8 system-ui,sans-serif;text-align:center;letter-spacing:.08em">STAGING（テスト環境）</div>';
+
+function forStaging(html: string): string {
+  return html.replace('<head>', `<head>${STAGING_HEAD}`).replace(/<body([^>]*)>/, `<body$1>${STAGING_BANNER}`);
+}
+
 /** Pretty URLs: / → index.html, /success → success.html. Unknown paths get 404.html. */
-function serveSite(pathname: string): Response {
+function serveSite(pathname: string, staging: boolean): Response {
   const path = pathname === '/' ? '/index.html' : SITE[pathname] ? pathname : `${pathname.replace(/\/$/, '')}.html`;
   const file = SITE[path];
   const found = file ?? SITE['/404.html'];
-  const body = found.base64 ? Uint8Array.from(atob(found.base64), (c) => c.charCodeAt(0)) : found.text;
+  const text = staging && found.type.startsWith('text/html') && found.text ? forStaging(found.text) : found.text;
+  const body = found.base64 ? Uint8Array.from(atob(found.base64), (c) => c.charCodeAt(0)) : text;
   return new Response(body, {
     status: file ? 200 : 404,
     headers: {
       'content-type': found.type,
       // Pages revalidate so copy changes show up at once; scripts, styles and images can be cached briefly.
       'cache-control': found.type.startsWith('text/html') ? 'public, max-age=0, must-revalidate' : 'public, max-age=3600',
+      ...(staging ? { 'x-robots-tag': 'noindex, nofollow' } : {}),
     },
   });
 }
@@ -63,7 +75,7 @@ export default {
           { headers: { 'cache-control': 'public, max-age=300' } },
         );
       default:
-        return serveSite(url.pathname);
+        return serveSite(url.pathname, env.ENVIRONMENT === 'staging');
     }
   },
 } satisfies ExportedHandler<Env>;

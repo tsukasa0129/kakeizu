@@ -1,5 +1,10 @@
 // Cloudflare Workers で配信する web2app ファネル。README の「web2app ファネル」を参照。
 // public/ のファイルは deploy / dev の前に scripts/embed.mjs で src/site.gen.ts に取り込まれる。
+//
+// 本番とステージングは別の Worker:
+//   本番        kakeizu-funnel          https://kakeizu-quest.app          main ブランチへの push で自動デプロイ（npm run deploy）
+//   ステージング kakeizu-funnel-staging  https://staging.kakeizu-quest.app  staging ブランチへの push で自動デプロイ（npm run deploy:staging）
+// routes と vars は環境ごとに引き継がれないので、env.staging にも全部書く。
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "kakeizu-funnel",
@@ -10,11 +15,27 @@
   "routes": [{ "pattern": "kakeizu-quest.app", "custom_domain": true }],
   "observability": { "enabled": true },
   "vars": {
-    // RevenueCat → Web → Web Purchase Links で `default` オファリングに作ったリンク（例: https://pay.rev.cat/xxxx）。
+    "ENVIRONMENT": "production",
+    // RevenueCat → Web → Web Purchase Links で `web_funnel` オファリングに作ったリンク（例: https://pay.rev.cat/xxxx）。
     // Redemption Links を有効にして匿名購入にするので、末尾に App User ID は付けない。
     "WEB_PURCHASE_LINK": "",
     // アプリのストアページ（公開後に設定。例: https://apps.apple.com/jp/app/id123… / https://play.google.com/store/apps/details?id=com.tsk.kakeizu）。空のストアは「まもなく公開」と表示する。
     "APP_STORE_URL": "",
     "PLAY_STORE_URL": ""
+  },
+  "env": {
+    "staging": {
+      "name": "kakeizu-funnel-staging",
+      "routes": [{ "pattern": "staging.kakeizu-quest.app", "custom_domain": true }],
+      "vars": {
+        // ページ上部に「ステージング」の帯を出し、検索エンジンに載せず、広告タグ（GA4 / Meta Pixel）にイベントを送らない。
+        "ENVIRONMENT": "staging",
+        // ステージング用の Web Purchase Link の「Sandbox URL」（Stripe のテストカードで購入できる）。
+        // 成功時の Custom redirect URL は https://staging.kakeizu-quest.app/success にする。空なら購入ボタンは「受け付けていません」。
+        "WEB_PURCHASE_LINK": "",
+        "APP_STORE_URL": "",
+        "PLAY_STORE_URL": ""
+      }
+    }
   }
 }

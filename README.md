@@ -149,6 +149,20 @@ RevenueCat プロジェクト「家系図クエスト」は設定済みです（
 
 ### web2app ファネル（`web-funnel/`・Cloudflare Workers・https://kakeizu-quest.app ）
 
+#### 本番とステージング
+
+| | 本番 | ステージング |
+| --- | --- | --- |
+| URL | https://kakeizu-quest.app | https://staging.kakeizu-quest.app |
+| Worker | `kakeizu-funnel` | `kakeizu-funnel-staging`（`wrangler.jsonc` の `env.staging`） |
+| 自動デプロイ（Workers Builds） | `main` に push（`web-funnel/` に変更があるとき）→ `npm run deploy` | `staging` に push → `npm run deploy:staging` |
+| 決済 | 本番の Web Purchase Link | ステージング用 Web Purchase Link の Sandbox URL（Stripe のテストカード） |
+| その他 | | 上部に「STAGING（テスト環境）」の帯。`noindex` で検索に載せない。GA4 / Meta Pixel にはイベントを送らない（`dataLayer` には入る） |
+
+変更はまず `staging` ブランチに push してステージングで確認し、問題なければ `main` にマージして本番に出します。
+`main` への push はそのまま本番に反映されるので、ファネルを直接 `main` に push しないでください。
+環境ごとの設定（`WEB_PURCHASE_LINK` など）は `wrangler.jsonc` の `vars`（本番）と `env.staging.vars`（ステージング）に分けて書きます。
+
 広告から Web に来た人を **Web で診断 → Web で購入（Stripe）→ アプリをダウンロード → アプリで有効化** まで運ぶファネルです。
 Web で決済するので App Store / Google Play の手数料がかからず、広告の計測もしやすくなります。
 
@@ -178,7 +192,9 @@ UTM（`utm_source` など5つ）はチェックアウトまで引き継がれ、
    （アプリ内 Stripe 用の `EXPO_PUBLIC_REVENUECAT_WEB_PURCHASE_LINK` は `default` オファリングのまま分けておくと、成功時の動作を分けられます）
    - 成功時の動作: **Custom redirect URL** に `https://<ファネルのドメイン>/success`（`redeem_url` が自動で付きます）
    - Web Billing の Stripe を本番モードに接続し、アプリ設定でサポート用メールアドレスを登録（基本通貨は JPY に設定済み）
-3. `web-funnel/wrangler.jsonc` の `vars` に `WEB_PURCHASE_LINK`（手順2のリンク）と、公開後に `APP_STORE_URL` / `PLAY_STORE_URL` を設定
+3. `web-funnel/wrangler.jsonc` の `vars` に `WEB_PURCHASE_LINK`（手順2のリンク）と、公開後に `APP_STORE_URL` / `PLAY_STORE_URL` を設定。
+   ステージングで購入まで試すときは、手順2と同じ設定で**ステージング用の Web Purchase Link** を別に作り（成功時の Custom redirect URL は `https://staging.kakeizu-quest.app/success`）、
+   その **Sandbox URL** を `env.staging.vars.WEB_PURCHASE_LINK` に設定
 4. 利用規約（https://kakeizu-quest.app/terms ）とプライバシーポリシー（https://kakeizu-quest.app/privacy ）は `web-funnel/public/terms.html` / `privacy.html` で公開済み。アプリのペイウォールもこの URL を開く。**特定商取引法に基づく表記**は https://kakeizu-quest.app/tokushoho （`web-funnel/public/tokushoho.html`、販売事業者は株式会社Tsk）。運営責任者の氏名は「請求があった場合は遅滞なく開示」としているので、請求が来たら開示すること。HTML に `{{…}}` の未記入項目が残っていると `scripts/embed.mjs` がエラーで止めて公開できない
 5. 価格表示は `funnel.js` の `PRICES` です。Web Billing の商品価格を変えたら合わせてください（Web 限定価格にする場合もここと RevenueCat の商品を変更）
 6. デプロイ
@@ -186,10 +202,13 @@ UTM（`utm_source` など5つ）はチェックアウトまで引き継がれ、
 ```bash
 cd web-funnel
 npm install
-npm run dev        # http://localhost:8787 （--var WEB_PURCHASE_LINK:https://pay.rev.cat/… で上書き可）
+npm run dev             # http://localhost:8787 （--var WEB_PURCHASE_LINK:https://pay.rev.cat/… で上書き可）
+npm run dev:staging     # ステージングの設定で起動（帯と noindex が付く）
 npm run typecheck
-npx wrangler login # 初回のみ（CI では CLOUDFLARE_API_TOKEN を設定）
-npm run deploy     # https://kakeizu-quest.app と https://kakeizu-funnel.tsukasa240129.workers.dev
+# ふだんは Workers Builds が push で自動デプロイする（staging → ステージング、main → 本番）。手元から出すときは:
+npx wrangler login      # 初回のみ
+npm run deploy:staging  # https://staging.kakeizu-quest.app
+npm run deploy          # 本番 https://kakeizu-quest.app と https://kakeizu-funnel.tsukasa240129.workers.dev
 ```
 
 ドメイン `kakeizu-quest.app` は Cloudflare Registrar で取得済み（2026-10-01）。自動更新はオンで、有効期限（2027-10-01）の前に $14.20/年 で自動更新されます（Cloudflare に登録した支払い方法に請求）。
