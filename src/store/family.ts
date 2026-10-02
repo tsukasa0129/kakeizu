@@ -47,6 +47,9 @@ interface FamilyState {
   reset: () => void;
 }
 
+/** The persisted (and cloud-synced) part of the family state. */
+export type FamilyData = Pick<FamilyState, 'persons' | 'documents' | 'leads'>;
+
 const isBlank = (v: unknown) => v === undefined || v === null || v === '';
 
 export const useFamily = create<FamilyState>()(

@@ -8,6 +8,7 @@ import Purchases, {
   type PurchasesPackage,
 } from 'react-native-purchases';
 
+import { useAccount } from '@/store/account';
 import { usePremium } from '@/store/premium';
 import { ExternalPurchase } from '../../modules/external-purchase';
 
@@ -40,7 +41,8 @@ export function initPurchases(): Promise<void> {
     if (!apiKey) return;
     try {
       if (__DEV__) await Purchases.setLogLevel(LOG_LEVEL.WARN);
-      Purchases.configure({ apiKey });
+      // Signed-in users use their account ID, so a purchase follows them to other devices and the web.
+      Purchases.configure({ apiKey, appUserID: useAccount.getState().user?.id ?? null });
       configured = true;
       Purchases.addCustomerInfoUpdateListener(syncEntitlement);
       syncEntitlement(await Purchases.getCustomerInfo());
@@ -49,6 +51,28 @@ export function initPurchases(): Promise<void> {
     }
   })();
   return initializing;
+}
+
+/** After signing in: moves this device's purchases onto the account, or picks up the account's. */
+export async function linkPurchases(userId: string) {
+  await initPurchases();
+  if (!configured) return;
+  try {
+    const { customerInfo } = await Purchases.logIn(userId);
+    syncEntitlement(customerInfo);
+  } catch (e) {
+    console.warn('RevenueCat logIn failed', e);
+  }
+}
+
+/** After signing out: back to an anonymous user (a store subscription can be restored again). */
+export async function unlinkPurchases() {
+  if (!configured) return;
+  try {
+    if (!(await Purchases.isAnonymous())) syncEntitlement(await Purchases.logOut());
+  } catch (e) {
+    console.warn('RevenueCat logOut failed', e);
+  }
 }
 
 export async function getCurrentOffering(): Promise<PurchasesOffering | null> {

@@ -78,6 +78,9 @@ const initial = {
   pendingReward: null as Reward | null,
 };
 
+/** The persisted (and cloud-synced) part of the game state. */
+export type GameData = Omit<typeof initial, 'pendingReward'>;
+
 export const useGame = create<GameState>()(
   persist(
     (set, get) => ({

@@ -7,6 +7,7 @@ Duolingo のようなゲーミフィケーションで、家系図の空欄を�
 - **React Native + Expo SDK 57**（Expo Router / TypeScript）
 - **RevenueCat**（`react-native-purchases`）でプレミアム課金
 - **Supabase Edge Function + Claude API** で戸籍画像 → JSON
+- **Cloudflare Workers + D1**（`api/`）でアカウント（メール＋6桁コード）と家系図データのクラウド同期
 
 ## 画面と機能
 
@@ -16,7 +17,7 @@ Duolingo のようなゲーミフィケーションで、家系図の空欄を�
 | 家系図 | 横向きの家系図（あなた → 親 → 祖父母 → 曾祖父母 …）。空欄をタップで入力、右下からスキャン |
 | 役所ナビ | おすすめルート診断、取得ガイド（チェックリスト付き）、スキャンで見つかった「次に請求する戸籍」リスト |
 | クエスト | 連続記録🔥・週カレンダー・デイリークエスト・バッジ |
-| プロフィール | レベル/XP、読み取った書類、購入の復元、データ削除 |
+| プロフィール | レベル/XP、読み取った書類、アカウント（ログイン・ログアウト・アカウント削除）、購入の管理、データ削除 |
 
 ### 課金モデル（ハードペイウォール）
 
@@ -133,7 +134,7 @@ RevenueCat プロジェクト「家系図クエスト」は設定済みです（
 - 購入ボタンを押すと RevenueCat のチェックアウト（Stripe）が開き、完了すると entitlement `premium` が有効になります
 - 現在のキー `rcb_sb_...` は **Stripe サンドボックス**です。テストカード `4242 4242 4242 4242`（有効期限は未来の日付、CVC は任意）で試せます
 - 解約・支払い方法の変更は、プロフィールの「サブスクリプションを管理」（RevenueCat のカスタマーポータル）から行えます
-- Web のユーザー ID はブラウザの localStorage に保存される匿名 ID です。別のブラウザ・端末で購入を引き継ぐには、ログイン機能を追加して `Purchases.logIn(userId)` を呼んでください
+- ログインしていない Web のユーザー ID は、ブラウザの localStorage に保存される匿名 ID です。ログインすると `Purchases.logIn(アカウントID)` で購入がアカウントにひもづくので、別のブラウザ・端末でもログインすれば引き継げます（下の「アカウントと同期」）
 
 本番公開前: RevenueCat の Web Billing アプリ設定で Stripe を本番モードに接続し、本番用の `rcb_` 公開キーに差し替えてください。
 サポート用メールアドレス（領収書に記載）もアプリ設定で登録してください。
@@ -222,6 +223,42 @@ npm run deploy          # 本番 https://kakeizu-quest.app と https://kakeizu-f
 - App Store の商品ページやアプリ内に、このファネル（Web で安く買える等）への誘導を書いてはいけません（アプリ内の Stripe は上の「iOS で Stripe を並べて表示」の条件どおりに）
 - Redemption Link はアプリをインストールしたスマホで開く必要があります。PC で購入した人は、購入完了メールのリンクをスマホで開いてもらいます
 
+### アカウントと同期（`api/`・Cloudflare Workers + D1・https://api.kakeizu-quest.app ）
+
+ログインは任意です。ログインすると家系図と進捗がクラウドに保存され、機種変更やほかの端末・Web 版でも続きから使えます。
+ログインしていない間は、これまでどおり端末の中だけに保存します。
+
+- **ログイン**: メールアドレスに届く6桁のコード（パスワードなし）。ようこそ画面の「アカウントをお持ちの方はログイン」と、プロフィールの「家系図をクラウドに保存」から開く（`src/app/login.tsx`、ガードの外）
+- **保存のしかた**: ユーザーごとに1行、家系図（`kakeizu-family`）と進捗（`kakeizu-game`）を JSON で丸ごと保存（`user_data` テーブル）。画面の操作は端末にすぐ保存し、2秒後にまとめてクラウドへ送る。アプリに戻ったときにほかの端末の変更を取り込み、アプリを離れるときはすぐ送る（`src/lib/sync.ts`）
+- **競合**: 保存のたびにバージョンを送り、ほかの端末が先に保存していたら（409）両方をマージしてから保存し直す。人物は続柄（slot）ごとに新しい編集を優先しつつ空欄で上書きしない、書類・請求リスト・バッジ・クリアしたレッスンは和集合、XP は多いほう（`src/lib/cloudData.ts`）
+- **課金**: ログインすると RevenueCat の App User ID をアカウント ID にする（`Purchases.logIn`）。Web で買ったプランも、別のブラウザや端末でログインすれば有効になる。ログアウトで匿名 ID に戻る
+- **ログアウト**: 未送信の変更を送ってから、この端末のデータを消す（クラウドには残る）。共用 PC で前の人のデータが残らないようにするため
+- **アカウント削除**（App Store の必須要件）: プロフィールの「アカウントを削除」で、アカウント・ログイン情報・クラウドのデータをすべて削除。サブスクリプションは解約されないので、確認画面で案内している
+- 認証は `Authorization: Bearer <token>`。トークンとログインコードは SHA-256 で保存。コードは10分有効・5回まで、送信は同じメールに1分1回・1時間5回、同じ IP から1時間20回まで
+
+| ファイル | 内容 |
+| --- | --- |
+| `api/src/worker.ts` | API 本体（`/auth/code` `/auth/verify` `/auth/logout` `/me` `/me/data`）。エンドポイントの説明は冒頭のコメント |
+| `api/migrations/` | D1 のスキーマ（`users` / `login_codes` / `code_sends` / `sessions` / `user_data`） |
+| `api/wrangler.jsonc` | D1 `kakeizu-db`（アジア太平洋）、メール送信の `send_email` バインディング、`api.kakeizu-quest.app` のカスタムドメイン |
+
+Cloudflare 側の設定（作成済み）:
+
+- D1 データベース `kakeizu-db`（`33681c52-29be-4cd0-b65c-f80156b35f2d`、場所のヒントは APAC）。`0001_init.sql` は適用済み
+- Email Service の Email Sending に `kakeizu-quest.app` を登録済み（送信元 `noreply@kakeizu-quest.app`。`cf-bounce` の MX・SPF・DKIM と DMARC は自動で追加された）。Email Sending は Workers 有料プランの機能
+- Workers Builds: `main` への push で `api/` が変わると自動でデプロイ（ファネルと同じ仕組み）
+
+```bash
+cd api
+npm install
+npx wrangler d1 migrations apply kakeizu-db --local   # 初回のみ
+npm run dev        # http://localhost:8787 。メールは送らず、本文が .wrangler/tmp/email/ に保存される
+npm run migrate    # スキーマを変えたとき：本番の D1 にマイグレーションを適用
+npm run deploy
+```
+
+アプリから開発用の API を使うときは `.env` に `EXPO_PUBLIC_API_URL=http://localhost:8787` を設定します（未設定なら本番の https://api.kakeizu-quest.app ）。
+
 ### Supabase Edge Function（AI 読み取り）
 
 ```bash
@@ -279,4 +316,5 @@ Photomyne のスキャン画面などを調査し、次のパターンを取り�
   ユーザーの entitlement を確認してから AI 読み取りを実行してください。
 - 利用規約・プライバシーポリシーは https://kakeizu-quest.app/terms ・ /privacy に公開済みです（`web-funnel/public/`）。内容を変えたら `cd web-funnel && npm run deploy` で反映してください。問い合わせ先 support@kakeizu-quest.app は Cloudflare Email Routing で運営者の Gmail に転送しています。
 - 戸籍制度の説明（手数料・広域交付の範囲など）は一般的な内容です。自治体により異なる場合があるため、アプリ内でも確認を促しています。
-- 戸籍は機微な個人情報です。ストア審査用のプライバシー表記（データの送信先・非保存）を用意してください。
+- 戸籍は機微な個人情報です。ストア審査用のプライバシー表記を用意してください。ログインした場合はメールアドレスと家系図のデータ（氏名・生年月日など）を当方のサーバー（Cloudflare）に保存するので、App Store の「App のプライバシー」と Google Play の「データ セーフティ」では「収集する（アカウントにひもづく・トラッキングには使わない）」として申告し、アカウント削除の方法（プロフィール → アカウントを削除）も記載してください。
+- AI 読み取り（Supabase）はまだアカウントと連携していません。`api/` の Worker に読み取りを移すと、ログイン中のユーザーの entitlement を RevenueCat で確認してから実行できます。

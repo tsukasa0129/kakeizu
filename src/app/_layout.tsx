@@ -5,12 +5,14 @@ import { ActivityIndicator, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { initPurchases } from '@/lib/purchases';
+import { startSync } from '@/lib/sync';
+import { useAccount } from '@/store/account';
 import { useFamily } from '@/store/family';
 import { useGame } from '@/store/game';
 import { usePremium } from '@/store/premium';
 import { colors } from '@/theme';
 
-const stores = [useFamily, useGame, usePremium];
+const stores = [useFamily, useGame, usePremium, useAccount];
 
 function useHydrated() {
   const [hydrated, setHydrated] = useState(() => stores.every((s) => s.persist.hasHydrated()));
@@ -41,11 +43,11 @@ export default function RootLayout() {
   const inApp = onboarded && isPremium;
 
   useEffect(() => {
+    if (!hydrated) return;
+    useGame.getState().rollDay();
+    // After hydration: RevenueCat needs the signed-in account ID, and sync needs the local data.
     initPurchases();
-  }, []);
-
-  useEffect(() => {
-    if (hydrated) useGame.getState().rollDay();
+    startSync();
   }, [hydrated]);
 
   if (!hydrated) {
@@ -78,6 +80,8 @@ export default function RootLayout() {
         </Stack.Protected>
         {/* web2app: opened by the web funnel's Redemption Link, even before onboarding. */}
         <Stack.Screen name="redeem_web_purchase" options={{ gestureEnabled: false }} />
+        {/* Email sign-in; reachable from the welcome screen too, so returning users can restore their tree. */}
+        <Stack.Screen name="login" options={{ presentation: 'modal' }} />
       </Stack>
       {inApp && <RewardWatcher />}
     </SafeAreaProvider>

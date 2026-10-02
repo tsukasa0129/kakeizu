@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
   Animated,
@@ -25,6 +26,7 @@ import { notify } from '@/lib/notify';
 import { awardProgress } from '@/lib/progress';
 import { purchasesAvailable, restore } from '@/lib/purchases';
 import { generationName, xpForSlot } from '@/lib/slots';
+import { useAccount } from '@/store/account';
 import { useFamily } from '@/store/family';
 import { useGame } from '@/store/game';
 import { colors, font, radius } from '@/theme';
@@ -89,6 +91,8 @@ export default function Onboarding() {
   const [familyName, setFamilyName] = useState('');
   const [givenName, setGivenName] = useState('');
   const [restoring, setRestoring] = useState(false);
+  const router = useRouter();
+  const signedIn = useAccount((s) => !!s.token);
 
   const targetGen = target ?? 4;
   const goalLabel = GOALS.find((g) => g.xp === goal)?.sub ?? '1日10分';
@@ -160,6 +164,9 @@ export default function Onboarding() {
           <Button3D title="はじめる" onPress={() => setHook(0)} />
           <Text style={styles.restore} onPress={restoring ? undefined : onRestore}>
             {restoring ? '確認中…' : 'すでに購入済みの方はこちら'}
+          </Text>
+          <Text style={styles.restore} onPress={() => router.push('/login')}>
+            アカウントをお持ちの方はログイン
           </Text>
         </FadeSlideIn>
       </SafeAreaView>
@@ -295,7 +302,9 @@ export default function Onboarding() {
                   placeholderTextColor={colors.locked}
                 />
               </View>
-              <Text style={font.small}>入力した情報はこの端末の中だけに保存されます。</Text>
+              <Text style={font.small}>
+                {signedIn ? '入力した情報はあなたのアカウントに保存されます。' : '入力した情報はこの端末の中だけに保存されます。'}
+              </Text>
             </>
           )}
 

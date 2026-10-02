@@ -1,0 +1,23 @@
+// 家系図クエストの API（アカウント・家系図データの同期）。README の「アカウントと同期」を参照。
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "kakeizu-api",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-09-01",
+  "workers_dev": true,
+  "routes": [{ "pattern": "api.kakeizu-quest.app", "custom_domain": true }],
+  "observability": { "enabled": true },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "kakeizu-db",
+      "database_id": "33681c52-29be-4cd0-b65c-f80156b35f2d",
+      "migrations_dir": "migrations"
+    }
+  ],
+  // Cloudflare Email Service（Email Sending）。送信元のドメイン kakeizu-quest.app は Email Sending に登録済み。
+  "send_email": [{ "name": "EMAIL" }],
+  "vars": {
+    "MAIL_FROM": "noreply@kakeizu-quest.app"
+  }
+}

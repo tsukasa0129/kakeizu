@@ -1,14 +1,17 @@
 import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button3D } from '@/components/Button3D';
 import { Icon, type IconName } from '@/components/Icon';
 import { ProgressBar } from '@/components/ProgressBar';
-import { notify } from '@/lib/notify';
+import { confirm, notify } from '@/lib/notify';
 import { getManagementURL } from '@/lib/purchases';
 import { isDemoMode } from '@/lib/extract';
+import { deleteAccount, signOut, syncNow } from '@/lib/sync';
+import { useAccount } from '@/store/account';
 import { displayName, useFamily } from '@/store/family';
 import { levelForXp, useGame, xpForLevel } from '@/store/game';
 import { colors, font, radius } from '@/theme';
@@ -38,18 +41,16 @@ export default function ProfileScreen() {
     else notify('サブスクリプション', '管理できるサブスクリプションが見つかりませんでした。');
   };
 
-  const onReset = () =>
-    Alert.alert('データを削除', '家系図・XP・進捗をすべて削除します。元に戻せません。', [
-      { text: 'キャンセル', style: 'cancel' },
-      {
-        text: '削除する',
-        style: 'destructive',
-        onPress: () => {
-          useFamily.getState().reset();
-          useGame.getState().reset();
-        },
-      },
-    ]);
+  const signedIn = useAccount((s) => !!s.token);
+
+  const onReset = async () => {
+    const message = signedIn
+      ? '家系図・XP・進捗をすべて削除します。クラウドに保存したデータも空になります。元に戻せません。'
+      : '家系図・XP・進捗をすべて削除します。元に戻せません。';
+    if (!(await confirm('データを削除', message, '削除する', true))) return;
+    useFamily.getState().reset();
+    useGame.getState().reset();
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -108,10 +109,15 @@ export default function ProfileScreen() {
           </View>
         )}
 
+        <AccountCard />
+
         <View style={[styles.card, { gap: 10 }]}>
           <Text style={font.h3}>プライバシー</Text>
           <Text style={font.small}>
-            家系図のデータはこの端末内に保存されます。書類の画像はAI読み取りのためだけにサーバーへ送信され、保存されません。
+            {signedIn
+              ? '家系図のデータはこの端末と、あなたのアカウント（クラウド）に保存されます。'
+              : '家系図のデータはこの端末内に保存されます。'}
+            書類の画像はAI読み取りのためだけにサーバーへ送信され、保存されません。
             {isDemoMode() ? '\n（現在はデモモード：画像は送信されず、サンプル結果が表示されます）' : ''}
           </Text>
           <Button3D title="サブスクリプションを管理" variant="secondary" onPress={onManage} />
@@ -119,6 +125,79 @@ export default function ProfileScreen() {
         </View>
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+function AccountCard() {
+  const router = useRouter();
+  const { user, token, dirty, syncError, lastSyncedAt } = useAccount();
+  const [busy, setBusy] = useState(false);
+
+  if (!token || !user) {
+    return (
+      <View style={[styles.card, { borderColor: colors.blue }]}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <Icon name="tree" size={22} />
+          <Text style={font.h3}>家系図をクラウドに保存</Text>
+        </View>
+        <Text style={font.body}>
+          ログインすると、機種変更やほかの端末・Web版でも続きから使えます。メールに届くコードだけでログインできます。
+        </Text>
+        <Button3D title="ログイン・アカウント作成" variant="blue" onPress={() => router.push('/login')} />
+      </View>
+    );
+  }
+
+  const status = syncError
+    ? '保存できませんでした（通信できるときに自動で再試行します）'
+    : dirty
+      ? '保存しています…'
+      : lastSyncedAt
+        ? `クラウドに保存済み（${new Date(lastSyncedAt).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}）`
+        : 'クラウドに保存済み';
+
+  const run = async (task: () => Promise<void>) => {
+    setBusy(true);
+    try {
+      await task();
+    } catch (e) {
+      notify('エラー', e instanceof Error ? e.message : 'エラーが発生しました');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onSignOut = async () => {
+    const ok = await confirm(
+      'ログアウト',
+      'この端末から家系図のデータを消してログアウトします。データはクラウドに残っているので、もう一度ログインすれば元に戻ります。',
+      'ログアウト',
+    );
+    if (ok) run(signOut);
+  };
+
+  const onDelete = async () => {
+    const ok = await confirm(
+      'アカウントを削除',
+      'アカウントと、クラウドとこの端末に保存した家系図・進捗をすべて削除します。元に戻せません。\n\nサブスクリプションは自動では解約されません。解約は「サブスクリプションを管理」から行ってください。',
+      '削除する',
+      true,
+    );
+    if (ok) run(deleteAccount);
+  };
+
+  return (
+    <View style={[styles.card, { gap: 10 }]}>
+      <Text style={font.h3}>アカウント</Text>
+      <Text style={{ fontWeight: '700', color: colors.text }}>{user.email}</Text>
+      <Text style={[font.small, syncError && { color: colors.redDark }]} onPress={syncError ? () => syncNow() : undefined}>
+        {status}
+      </Text>
+      <Button3D title={busy ? '処理中…' : 'ログアウト'} variant="secondary" onPress={onSignOut} disabled={busy} />
+      <Text style={styles.deleteLink} onPress={busy ? undefined : onDelete}>
+        アカウントを削除
+      </Text>
+    </View>
   );
 }
 
@@ -162,5 +241,6 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   statValue: { fontSize: 18, fontWeight: '800', color: colors.text },
+  deleteLink: { color: colors.redDark, fontWeight: '700', fontSize: 13, textAlign: 'center', paddingVertical: 4 },
   docRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 },
 });
