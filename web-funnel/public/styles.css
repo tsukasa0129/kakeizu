@@ -101,7 +101,7 @@ p { margin: 0 0 12px; }
 .welcome, .ob-body, .hook, .calc { animation: none; }
 .center-text { text-align: center; }
 .ob-text { font-size: 15px; line-height: 23px; margin: 0; }
-.welcome h1, .ob-body h1 { font-size: 28px; font-weight: 800; margin: 0; }
+.lp-hero h1, .ob-body h1 { font-size: 28px; font-weight: 800; margin: 0; }
 .ob-body h2, .calc h2 { font-size: 22px; line-height: 1.4; font-weight: 800; margin: 0; }
 
 /* まめた */
@@ -125,12 +125,20 @@ p { margin: 0 0 12px; }
   position: sticky; bottom: 0; display: grid; gap: 14px; margin: 0 -20px; padding: 16px 20px calc(20px + env(safe-area-inset-bottom));
   background: linear-gradient(to top, var(--bg) 75%, rgba(255, 255, 255, 0));
 }
-.ob-bottom.flat { position: static; margin: 0; padding: 20px 0 0; background: none; align-self: stretch; }
 
 /* welcome */
 .welcome { align-items: center; text-align: center; gap: 14px; padding-top: 24px; }
 .greeting { background: var(--surface); border: 2px solid var(--border); border-radius: 999px; padding: 8px 16px; font-size: 14px; font-weight: 800; }
 .restore { display: block; text-align: center; color: #1cb0f6; font-weight: 700; font-size: 14px; text-decoration: none; }
+
+/* landing page: welcome + every intro page stacked (funnel.js welcome) */
+.lp-hero { display: flex; flex-direction: column; align-items: center; gap: 14px; min-height: calc(100dvh - 170px); }
+.lp-more { display: block; color: var(--faint); font-size: 14px; animation: bob 1s ease-in-out infinite alternate; }
+.lp-section { align-self: stretch; text-align: left; padding: 40px 0; border-top: 1px solid var(--border); }
+.lp-section .hook-page { flex: none; padding: 0 4px; }
+/* sections wait (invisible, at their first frame) until they scroll into view */
+.lp-section:not(.inview) .fi, .lp-section:not(.inview) .pop-in { animation-play-state: paused; }
+.lp-cta { align-self: stretch; }
 
 /* speech bubble (MascotSays) */
 .says { display: flex; align-items: center; gap: 10px; }

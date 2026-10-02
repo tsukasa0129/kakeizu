@@ -288,19 +288,25 @@ function hookScreen(step) {
 // ---- screens ----
 
 const screens = {
+  // The landing page: the welcome screen with every intro page stacked below it, like an LP. Each section animates
+  // when it scrolls into view (animate → watchSections). "はじめる" still goes through the paged intro (hook1…).
   welcome: () => `
     <section class="screen welcome">
-      <div class="grow"></div>
-      ${pop('<div class="greeting">まめただよ！いっしょにご先祖さまを探そう</div>', 500)}
-      ${pop(mascot(190, 'happy', true))}
-      ${fade('<h1 class="center-text">家系図クエスト</h1>', 250)}
-      ${fade('<p class="ob-text muted center-text">役所の戸籍をAIで読み取って、<br>ゲーム感覚で家系図を完成させよう。</p>', 400)}
-      <div class="grow"></div>
+      <div class="lp-hero">
+        <div class="grow"></div>
+        ${pop('<div class="greeting">まめただよ！いっしょにご先祖さまを探そう</div>', 500)}
+        ${pop(mascot(190, 'happy', true))}
+        ${fade('<h1 class="center-text">家系図クエスト</h1>', 250)}
+        ${fade('<p class="ob-text muted center-text">役所の戸籍をAIで読み取って、<br>ゲーム感覚で家系図を完成させよう。</p>', 400)}
+        <div class="grow"></div>
+        ${fade('<span class="lp-more" aria-hidden="true">▼</span>', 900)}
+      </div>
+      ${HOOKS.map((h) => `<div class="lp-section"><div class="hook-page">${hookPages[h]()}</div></div>`).join('')}
       ${fade(
         `${button('はじめる')}<a class="restore" href="/success">すでに購入済みの方はこちら</a>`,
         650,
         'bottom',
-        'ob-bottom flat',
+        'ob-bottom lp-cta',
       )}
       ${legalFooter()}
     </section>`,
@@ -464,14 +470,31 @@ const screens = {
         <details><summary>製本の料金も含まれますか？</summary><p>含まれません。家系図を本にする場合は、アプリから別料金でご注文いただけます。</p></details>
       </div>
       <div class="bottom">
-        <button class="btn" data-checkout>${PRICES[plan].label}ではじめる</button>
-        <p class="small num" style="margin:0;text-align:center">${PRICES[plan].price}/${PRICES[plan].per}・自動更新。いつでも解約できます。</p>
+        <button class="btn" data-checkout>${checkoutLabel()}</button>
+        <p class="small num" style="margin:0;text-align:center" data-plan-terms>${planTerms()}</p>
       </div>
       ${legalFooter()}
     </section>`;
   },
 };
 
+
+const checkoutLabel = () => `${PRICES[plan].label}ではじめる`;
+const planTerms = () => `${PRICES[plan].price}/${PRICES[plan].per}・自動更新。いつでも解約できます。`;
+
+/** Switches the selected plan in place (re-rendering the paywall would replay its animations and jump to the top). */
+function selectPlan(id) {
+  plan = id;
+  store.set('plan', plan);
+  root.querySelectorAll('[data-plan]').forEach((b) => {
+    b.classList.toggle('selected', b.dataset.plan === plan);
+    b.setAttribute('aria-checked', String(b.dataset.plan === plan));
+  });
+  const checkout = root.querySelector('[data-checkout]');
+  if (checkout && !checkout.disabled) checkout.textContent = checkoutLabel();
+  const terms = root.querySelector('[data-plan-terms]');
+  if (terms) terms.textContent = planTerms();
+}
 
 function planCard(id, extra) {
   const p = PRICES[id];
@@ -517,11 +540,8 @@ root.addEventListener('click', (e) => {
   if (el.hasAttribute('data-next')) next();
   else if (el.hasAttribute('data-back')) history.back();
   else if (el.dataset.answer) select(el);
-  else if (el.dataset.plan) {
-    plan = el.dataset.plan;
-    store.set('plan', plan);
-    show('paywall', { history: 'none' });
-  } else if (el.hasAttribute('data-checkout')) {
+  else if (el.dataset.plan) selectPlan(el.dataset.plan);
+  else if (el.hasAttribute('data-checkout')) {
     startCheckout(el);
   }
 });
@@ -579,9 +599,7 @@ const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').match
 
 function animate(step) {
   const reduced = reducedMotion();
-  root.querySelectorAll('[data-count]').forEach((el) =>
-    countUp(el, Number(el.dataset.count), reduced ? 0 : Number(el.dataset.dur), reduced ? 0 : Number(el.dataset.delay)),
-  );
+  root.querySelectorAll('[data-count]').forEach((el) => !el.closest('.lp-section') && startCount(el, reduced));
   requestAnimationFrame(() =>
     requestAnimationFrame(() => root.querySelectorAll('[data-width]').forEach((el) => (el.style.width = `${el.dataset.width}%`))),
   );
@@ -592,9 +610,34 @@ function animate(step) {
     );
   }
   lastHook = hook >= 0 ? hook : null;
-  if (step === 'hook6') runBook(reduced);
+  if (step === 'hook6') runBook(root.querySelector('.ob-book'), reduced);
+  if (step === 'welcome') watchSections(reduced);
   if (step === 'calc') runCalc(reduced);
   if (step === 'plan' && !reduced) confetti();
+}
+
+const startCount = (el, reduced) =>
+  countUp(el, Number(el.dataset.count), reduced ? 0 : Number(el.dataset.dur), reduced ? 0 : Number(el.dataset.delay));
+
+/** Landing page: each stacked intro section starts its animations the first time it scrolls into view. */
+function watchSections(reduced) {
+  const start = (section) => {
+    section.classList.add('inview');
+    section.querySelectorAll('[data-count]').forEach((el) => startCount(el, reduced));
+    runBook(section.querySelector('.ob-book'), reduced);
+  };
+  const sections = root.querySelectorAll('.lp-section');
+  if (!('IntersectionObserver' in window)) return sections.forEach(start);
+  const observer = new IntersectionObserver(
+    (entries) =>
+      entries.forEach((e) => {
+        if (!e.isIntersecting) return;
+        observer.unobserve(e.target);
+        start(e.target);
+      }),
+    { threshold: 0.25 },
+  );
+  sections.forEach((s) => observer.observe(s));
 }
 
 function countUp(el, to, ms, delay) {
@@ -612,8 +655,7 @@ function countUp(el, to, ms, delay) {
 }
 
 /** The book (art.js bookOpening): the cover opens, then the page keeps turning between the two spreads. */
-function runBook(reduced) {
-  const book = root.querySelector('.ob-book');
+function runBook(book, reduced) {
   if (!book) return;
   if (reduced) return book.classList.add('open');
   // Same rhythm as the app: open after a moment, then a 0.6s turn after every 1s of reading time.
