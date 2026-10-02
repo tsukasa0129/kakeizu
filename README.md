@@ -153,14 +153,14 @@ RevenueCat プロジェクト「家系図クエスト」は設定済みです（
 Web で決済するので App Store / Google Play の手数料がかからず、広告の計測もしやすくなります。
 
 ```
-広告 ─▶ /（LP）─▶ 診断4問 ─▶ ご先祖さまの人数 ─▶ 比較 ─▶ プラン作成 ─▶ ペイウォール
+広告 ─▶ /（ようこそ）─▶ 紹介5ページ ─▶ 質問4問 ─▶ ご先祖さまの人数 ─▶ 比較 ─▶ 1日の目標 ─▶ お名前 ─▶ プラン作成 ─▶ ペイウォール
      ─▶ /checkout ─▶ RevenueCat Web Purchase Link（Stripe）─▶ /success?redeem_url=rc-xxxx://…
      ─▶ アプリをインストール ─▶「アプリで有効にする」─▶ アプリの /redeem_web_purchase で entitlement を付与
 ```
 
 | ファイル | 内容 |
 | --- | --- |
-| `web-funnel/public/index.html` + `funnel.js` | LP・診断・プラン・ペイウォール（アプリのオンボーディングと同じ流れ・同じ見た目。まめたも同じ絵）。回答と UTM は localStorage に保存 |
+| `web-funnel/public/index.html` + `funnel.js` + `art.js` | オンボーディング・プラン・ペイウォール。オンボーディングはアプリ（`src/app/onboarding.tsx` / `src/components/OnboardingHooks.tsx`）と同じ画面・同じ文言・同じ見た目で、まめた・アイコン・本の絵は `art.js` にアプリから移植。アプリ側を変えたらこちらも合わせる。回答と UTM は localStorage に保存 |
 | `web-funnel/public/success.html` + `success.js` | 購入後のページ。スマホならストアへのボタンと「アプリで有効にする」、PC なら「スマホでメールを開いて」と案内 |
 | `web-funnel/src/worker.ts` | `public/` のページを配信（`scripts/embed.mjs` が deploy / dev の前に `src/site.gen.ts` へ取り込む）、`/checkout`（Web Purchase Link に `package_id` と UTM を付けてリダイレクト）、`/app`（端末に合わせて App Store / Google Play へ）、`/config.json` |
 | `src/app/redeem_web_purchase.tsx` | アプリ側。Redemption Link（`rc-xxxx://redeem_web_purchase?redemption_token=…`）を受け取り `Purchases.redeemWebPurchase` で購入を引き継ぐ。オンボーディング前でも開けるよう `_layout.tsx` のガードの外に置いている。成功したら質問をスキップしてアプリへ（Web で回答済みのため）。期限切れのときは RevenueCat が新しいリンクをメールで送る |
