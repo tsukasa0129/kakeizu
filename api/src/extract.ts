@@ -107,7 +107,7 @@ async function runModel<T>(task: () => Promise<T>): Promise<T> {
     return await task();
   } catch (e) {
     if (e instanceof ExtractError) throw e;
-    console.error('ai error', e);
+    console.error('ai error', e instanceof Error ? `${e.name}: ${e.message}` : e);
     throw new ExtractError(502, 'AIサービスでエラーが発生しました。しばらくしてからお試しください。');
   }
 }
@@ -125,6 +125,23 @@ function imageMessage(images: ImageInput[], ask: string) {
   };
 }
 
+/** Models sometimes write null (or leave out) fields the schema needs as strings / arrays; fill those in. */
+function normalize(value: unknown) {
+  const doc = value as Record<string, unknown> | null;
+  if (!doc || typeof doc !== 'object') return value;
+  doc.documentTitle ??= '';
+  doc.persons ??= [];
+  doc.previousRegisters ??= [];
+  doc.warnings ??= [];
+  for (const p of (Array.isArray(doc.persons) ? doc.persons : []) as Record<string, unknown>[]) {
+    p.familyName ??= '';
+    p.givenName ??= '';
+    p.events ??= [];
+    for (const e of (Array.isArray(p.events) ? p.events : []) as Record<string, unknown>[]) e.description ??= '';
+  }
+  return doc;
+}
+
 function parseResult(json: string) {
   let parsed: unknown;
   try {
@@ -133,7 +150,7 @@ function parseResult(json: string) {
     console.error('model returned non-JSON', json.slice(0, 500));
     throw new ExtractError(502, '読み取り結果を整理できませんでした。もう一度お試しください。');
   }
-  const result = ExtractionResult.safeParse(parsed);
+  const result = ExtractionResult.safeParse(normalize(parsed));
   if (!result.success) {
     console.error('model output does not match schema', result.error.message.slice(0, 500));
     throw new ExtractError(502, '読み取り結果を整理できませんでした。もう一度お試しください。');
