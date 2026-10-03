@@ -227,26 +227,49 @@ npm run deploy          # 本番 https://kakeizu-quest.app と https://kakeizu-f
 
 #### AI 読み取り（`POST /extract`）
 
-戸籍の画像（最大6枚・1枚5MBまで）を受け取り、Cloudflare Workers AI で JSON にして返します（`api/src/extract.ts`）。AI モデルは原則 DeepSeek を使いますが、Workers AI の DeepSeek は画像を読めないので2段階にしています。
+戸籍の画像（最大6枚・1枚5MBまで）を受け取り、AI で JSON にして返します（`api/src/extract.ts`）。
+使うモデルは `api/wrangler.jsonc` の `EXTRACT_MODEL` で切り替えます。カンマ区切りで複数書くと、失敗したとき（AI のエラー・クレジット切れ・結果の形が崩れた）に次のモデルで読み直します。
 
-1. **書き起こし**：ビジョンモデル `@cf/qwen/qwen3.8-27b` が画像の文字を、要約せずにそのままテキストにする（読めない字は「〓」）
-2. **構造化**：`@cf/deepseek-ai/deepseek-v4-flash-0731` が書き起こしを読み、`extractionSchema.ts` のスキーマどおりの JSON にする（JSON モード＋プロンプトに JSON Schema。返ってきた JSON は Zod で検証）
+| `EXTRACT_MODEL` の書き方 | 読み方 |
+| --- | --- |
+| `workers-ai` | 2段階。`@cf/qwen/qwen3.8-27b`（ビジョン）が画像の文字をそのまま書き起こす（読めない字は「〓」）→ `@cf/deepseek-ai/deepseek-v4-flash-0731` が書き起こしをスキーマどおりの JSON にする |
+| `@cf/<モデル>` | Workers AI のビジョンモデル1回で、画像から直接 JSON にする |
+| `<作者>/<モデル>`（例: `google/gemini-3.8-flash`） | AI Gateway 経由の外部モデル1回で、画像から直接 JSON にする。Cloudflare の **Unified Billing（AI Gateway の前払いクレジット）** で払うので外部の API キーは不要。クレジットがないと `Insufficient AI Gateway credits` で失敗する |
 
-所要時間は架空の戸籍1ページで30〜40秒ほどです（各段階の時間は Workers Logs に `extract: … transcribe …ms, structure …ms` で出る）。
-速さのために次のように調整しています。精度が足りないときはここを戻して比べてください。
+**今の設定は `workers-ai,@cf/qwen/qwen3.8-27b`**（2段階で読み、失敗したら Qwen 1回で読み直す）。
+どのモデルも、返ってきた JSON は `extractionSchema.ts` の Zod スキーマで検証します（スキーマはプロンプトで渡し、出力は JSON モード）。
 
-| 設定 | 今の値 | 試した結果（1ページ） |
+##### モデルの比較（2026-10-03、架空の戸籍で各1回）
+
+縦書き・明治の戸籍（大字の日付、×印の除籍者あり、4人）を読ませた結果です。正解は「4人の氏名・続柄・生年月日（西暦）・父母・夫婦のつながり、×印のハナが除籍、妻トメの従前戸籍（佐藤茂吉の戸籍）」。
+
+| モデル | 時間 | 結果 |
+| --- | --- | --- |
+| `workers-ai`（Qwen 書き起こし → DeepSeek V4 Flash） | 41〜86秒 | 4人とも正確。従前戸籍は取りこぼし |
+| `@cf/qwen/qwen3.8-27b`（1回） | 104秒 | 4人とも正確＋従前戸籍も取れた（「縣」「五十拾」など細かい誤字あり） |
+| `@cf/google/gemma-4-26b-a4b-it` | 236秒 | 生年月日の取り違えあり |
+| `@cf/meta/llama-4-scout-17b-16e-instruct` | 25秒 | 誤読が多く使えない |
+| `@cf/mistralai/mistral-small-3.1-24b-instruct` | 37秒 | 誤読が多く使えない |
+| `@cf/moonshotai/kimi-k2.6` | 216秒 | 決まった形の JSON を返せなかった |
+| `google/gemini-3.8-flash`・`google/gemini-3.1-pro`・`anthropic/claude-opus-4.8` | — | AI Gateway のクレジットがなく試せていない |
+
+横書きの全部事項証明（2人）では、`workers-ai` が33〜42秒で全項目正解でした。
+`workers-ai` を速くするための調整（試した結果）:
+
+| 設定 | 今の値 | 試した結果（横書き1ページ） |
 | --- | --- | --- |
 | 構造化のモデル | DeepSeek V4 Flash | Pro（推論 low）は構造化だけで約2分 |
 | 構造化の推論（`reasoning_effort`） | `none` | Flash の `low` で約45秒 |
 | 構造化の出力形式 | JSON モード（`json_object`） | `json_schema` の制約付き出力は推論なしでも約48秒 |
 | 書き起こしの推論 | `low` | `medium` を含め全体で3分以上 |
 
+**モデルを比べるとき**: Worker のシークレット `EXTRACT_DEBUG_KEY` と同じ値を `x-debug-key` ヘッダーに付けたリクエストだけ、`x-extract-model` ヘッダーでモデルを指定できます（ふつうのリクエストは `EXTRACT_MODEL` を使う）。各段階の時間は Workers Logs に `extract[…]: …ms` で出ます。
+
 読み取りに時間がかかるため、`/extract` はすぐに応答を始め、結果が出るまで10秒ごとに空白を送ります（スマホの通信が約1分で切れないように）。
 そのため読み取り中のエラーは HTTP 200 の `{ error }` で返ります（入力の不備と回数制限は従来どおり 4xx）。
 
 画像はメモリ上で処理するだけで保存しません。ログインは不要です（課金の確認はアプリ側）。乱用を防ぐため、同じ IP から1時間30回までにしています。
-Workers AI は `wrangler.jsonc` の `ai` バインディングで使うので、API キーは不要です（料金は Cloudflare の請求に含まれる。DeepSeek V4 Pro は Workers 有料プランが必要）。
+Workers AI は `wrangler.jsonc` の `ai` バインディングで使うので、API キーは不要です（料金は Cloudflare の請求に含まれる。DeepSeek V4 は Workers 有料プランが必要）。
 
 #### アカウントと同期
 

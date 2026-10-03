@@ -1,7 +1,8 @@
 // POST /extract — 戸籍の画像を AI で読み取り、家系図用の JSON にする。
 //   { images: [{ mediaType: "image/jpeg", data: "<base64>" }, ...] } → { result: ExtractionResult } | { error }
 //
-// 使うモデルは wrangler.jsonc の EXTRACT_MODEL で切り替える（README の「AI 読み取り」に比較結果）:
+// 使うモデルは wrangler.jsonc の EXTRACT_MODEL で切り替える（README の「AI 読み取り」に比較結果）。
+// カンマ区切りで複数書くと、失敗したときに次のモデルで読み直す:
 //   "workers-ai"     2段階。Qwen 3.8（ビジョン）で書き起こし → DeepSeek V4 Flash で構造化（DeepSeek は画像を読めないため）
 //   "@cf/<model>"    Workers AI のビジョンモデル1回で、画像から直接 JSON にする
 //   "<作者>/<model>" AI Gateway 経由の外部モデル（例: google/gemini-3.8-flash）。1回で画像から直接 JSON。
@@ -36,7 +37,7 @@ const TRANSCRIBE_PROMPT = `あなたは${EXPERT}を正確に書き起こす専�
 /** Rules for turning a koseki (as an image, or as a transcription of one) into the schema. */
 const RULES = `- 書かれていることだけを出力し、推測で人物や日付を作らないこと。読めない・判断できない箇所は null にして warnings に日本語で理由を書く。
 - 1つの戸籍が複数ページに分かれている場合は、1つの書類としてまとめる。
-- documentType は「全部事項証明」「戸籍謄本」なら koseki_zenbu、「個人事項証明」「戸籍抄本」なら koseki_kojin、「除籍」なら joseki、「改製原戸籍」なら kaisei_genkoseki、それ以外は other。
+- documentType は書類の見出し（タイトル）で判断する。「全部事項証明」「戸籍謄本」なら koseki_zenbu、「個人事項証明」「戸籍抄本」なら koseki_kojin、「除籍謄本」なら joseki、「改製原戸籍」なら kaisei_genkoseki、見出しがない・わからないときは other。本文中の「除籍」（婚姻などで抜けた人の記載）では判断しない。
 - 戸籍に記載された各人（筆頭者・戸主・配偶者・子など）を persons に1人ずつ入れる。tempId は "p1", "p2" … とする。
 - 同じ戸籍に記載されている人の氏（familyName）は、別の氏が書かれていない限り筆頭者（戸主）の氏にする。配偶者の旧姓は父母欄や従前戸籍の筆頭者から推測して入れないこと。
 - 父母欄の父・母の名前は fatherName / motherName に書かれたとおりに入れる。その父母が同じ書類に記載されている場合は fatherTempId / motherTempId でつなぐ。配偶者も同様に spouseTempId でつなぐ。
@@ -210,6 +211,25 @@ async function oneStep(images: ImageInput[], ai: Ai, model: string) {
   return parseResult(firstChoiceText(output));
 }
 
-export function extractKoseki(images: ImageInput[], ai: Ai, model: string) {
+function extractWith(images: ImageInput[], ai: Ai, model: string) {
   return model === 'workers-ai' ? twoStep(images, ai) : oneStep(images, ai, model);
+}
+
+/**
+ * `models` is a comma-separated list tried in order (e.g. "google/gemini-3.8-flash,workers-ai"): when one fails
+ * (AI error, credits used up, unusable output) the next one reads the same images.
+ */
+export async function extractKoseki(images: ImageInput[], ai: Ai, models: string) {
+  const list = models.split(',').map((m) => m.trim()).filter(Boolean);
+  for (const [i, model] of list.entries()) {
+    try {
+      return await extractWith(images, ai, model);
+    } catch (e) {
+      // A document too long for the model fails the same way everywhere; stop there.
+      const last = i === list.length - 1;
+      if (last || (e instanceof ExtractError && e.status === 422)) throw e;
+      console.warn(`extract: ${model} failed (${e instanceof Error ? e.message : e}), trying ${list[i + 1]}`);
+    }
+  }
+  throw new ExtractError(500, 'AI読み取りのモデルが設定されていません');
 }

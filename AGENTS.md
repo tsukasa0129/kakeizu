@@ -7,8 +7,10 @@ This is an Expo/React Native mobile application. Prioritize mobile-first pattern
 
 ## AI モデル
 
-- AI の機能は、原則として Cloudflare Workers AI の DeepSeek（例：`@cf/deepseek-ai/deepseek-v4-flash-0731`、`@cf/deepseek-ai/deepseek-v4-pro-0813`）で作る。API の Worker（`api/`）から `ai` バインディングで呼び、外部の AI API キーは使わない。
-- DeepSeek ができないこと（画像を読むなど）だけ、Workers AI のほかのモデルを使う（例：画像の書き起こしに `@cf/qwen/qwen3.8-27b`）。
+- AI の機能は Cloudflare（Workers AI の `ai` バインディング）で作り、API の Worker（`api/`）から呼ぶ。外部の AI の API キーは使わない。
+- モデルは DeepSeek（例：`@cf/deepseek-ai/deepseek-v4-flash-0731`、`@cf/deepseek-ai/deepseek-v4-pro-0813`）を基本にするが、用途により良いモデルがあればそれを使ってよい（例：画像を読むなら `@cf/qwen/qwen3.8-27b`）。
+- 外部のモデル（Gemini・Claude など）も、AI Gateway の Unified Billing（前払いクレジット）経由なら使ってよい。
+- モデルを選ぶときは、同じ入力で精度と時間を比べて決め、結果を README に残す（例：README の「AI 読み取り」）。
 - 使えるモデルと入力の形は変わるので、Cloudflare のドキュメントと `wrangler types` で生成される型で確認してから書く。
 
 ## Expo has changed — do not trust your training data
