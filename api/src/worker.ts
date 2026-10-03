@@ -290,7 +290,11 @@ async function extract(request: Request, env: Env, ctx: ExecutionContext) {
     env.DB.prepare('DELETE FROM extract_requests WHERE requested_at < ?').bind(now - 24 * HOUR_MS),
   ]);
 
-  return keepAliveJson(ctx, async () => ({ result: await extractKoseki(images, env.AI) }));
+  // For comparing models in production: a request carrying the debug key may pick the model (see README).
+  const debugKey = request.headers.get('x-debug-key');
+  const override = env.EXTRACT_DEBUG_KEY && debugKey === env.EXTRACT_DEBUG_KEY ? request.headers.get('x-extract-model') : null;
+  const model = override || env.EXTRACT_MODEL;
+  return keepAliveJson(ctx, async () => ({ result: await extractKoseki(images, env.AI, model) }));
 }
 
 async function route(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {

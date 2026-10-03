@@ -20,6 +20,9 @@
   // Workers AI（戸籍の AI 読み取り。画像の書き起こし → DeepSeek で構造化）
   "ai": { "binding": "AI" },
   "vars": {
-    "MAIL_FROM": "noreply@kakeizu-quest.app"
+    "MAIL_FROM": "noreply@kakeizu-quest.app",
+    // AI 読み取りに使うモデル。"workers-ai"（Qwen で書き起こし → DeepSeek で構造化）、"@cf/…"（Workers AI のビジョンモデル1回）、
+    // "google/…" など（AI Gateway 経由の外部モデル。Unified Billing のクレジットが必要）。比較結果は README の「AI 読み取り」
+    "EXTRACT_MODEL": "workers-ai"
   }
 }
