@@ -1,0 +1,17 @@
+// アプリの Web 版（Expo の Web 書き出し）を Cloudflare Workers の静的アセットで配信する。README の「Web 版」を参照。
+// ビルド: npx expo export --platform web（dist/ に出力。EXPO_PUBLIC_* は .env.production から読む）
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "kakeizu-web",
+  "compatibility_date": "2026-09-01",
+  // workers.dev の URL は出さない（app.kakeizu-quest.app だけで公開。Cloudflare Access の制限が workers.dev には効かないため）
+  "workers_dev": false,
+  "preview_urls": false,
+  "routes": [{ "pattern": "app.kakeizu-quest.app", "custom_domain": true }],
+  "observability": { "enabled": true },
+  "assets": {
+    "directory": "./dist",
+    // Expo Router の画面（/login、/person/3 など）はすべて index.html から開く
+    "not_found_handling": "single-page-application"
+  }
+}

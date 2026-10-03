@@ -139,6 +139,25 @@ RevenueCat プロジェクト「家系図クエスト」は設定済みです（
 本番公開前: RevenueCat の Web Billing アプリ設定で Stripe を本番モードに接続し、本番用の `rcb_` 公開キーに差し替えてください。
 サポート用メールアドレス（領収書に記載）もアプリ設定で登録してください。
 
+#### Web 版の公開（Cloudflare Workers・https://app.kakeizu-quest.app ）
+
+アプリを `npx expo export --platform web` で書き出し（`dist/`）、ルートの `wrangler.jsonc` で Worker `kakeizu-web` の静的アセットとして配信しています。
+Expo Router の画面（`/login` など）は `not_found_handling: "single-page-application"` で `index.html` から開きます。
+
+| 項目 | 内容 |
+| --- | --- |
+| 自動デプロイ | Workers Builds: `main` に push すると `npm ci && npm run build:web` → `npx wrangler@4 deploy`（`api/`・`web-funnel/` だけの変更では動かない） |
+| ビルド時の設定 | `.env.production`（公開キーだけ。`EXPO_PUBLIC_REVENUECAT_WEB_KEY` など）。API は既定の https://api.kakeizu-quest.app |
+| 決済 | RevenueCat Billing（Web Billing）。アプリ「家系図クエスト (Web)」（`app591233cc18`） |
+| アクセス制限 | **今は Cloudflare Access で制限中**（アプリ `kakeizu-web`。運営者のメールのワンタイム PIN と、エージェント・自動テスト用のサービストークンだけ）。workers.dev の URL は無効 |
+
+**一般公開の手順**（今の Web Billing は Stripe のテストモード＝サンドボックス `acct_1UKvYcAi6mygNgkU` につながっていて、テストカードで誰でもプレミアムになれるため制限している）:
+1. RevenueCat → プロジェクト「家系図クエスト」→ アプリ「家系図クエスト (Web)」で、Stripe を本番のアカウント「家系図アプリ」（`acct_1UKvXvPSXCKffM7I`）に接続する
+2. 本番の公開キー（`rcb_`、`rcb_sb_` ではない）を `.env.production` の `EXPO_PUBLIC_REVENUECAT_WEB_KEY` に入れて push
+3. Cloudflare Zero Trust → Access → アプリケーションで `kakeizu-web` を削除する（これで誰でも開ける）
+
+手元から出すとき: `npm run deploy:web`（`npx wrangler login` が必要）。
+
 リリース前に残っている作業（ストア側）:
 
 1. App Store の商品は作成済み（サブスクリプショングループ「家系図クエスト プレミアム」）。審査用スクリーンショットは仮の画像なので、ペイウォールのスクリーンショットに差し替えてから最初のアプリ審査と一緒に提出
