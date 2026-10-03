@@ -192,8 +192,46 @@ async function twoStep(images: ImageInput[], ai: Ai) {
   return parseResult(json);
 }
 
+type AnthropicOutput = { content?: { type: string; text?: string }[]; stop_reason?: string | null };
+
+/** Claude models on AI Gateway take the Anthropic Messages format (system prompt and images as content blocks). */
+async function anthropicOneStep(images: ImageInput[], ai: Ai, model: string) {
+  const startedAt = Date.now();
+  const output = (await runModel(() =>
+    ai.run(
+      model,
+      {
+        system: READ_PROMPT,
+        max_tokens: 16000,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              ...images.flatMap((img, i) => [
+                { type: 'text', text: `${i + 1}ページ目:` },
+                { type: 'image', source: { type: 'base64', media_type: img.mediaType, data: img.data } },
+              ]),
+              { type: 'text', text: 'この戸籍を読み取り、JSON で出力してください。' },
+            ],
+          },
+        ],
+      },
+      { gateway: { id: 'default' } },
+    ),
+  )) as AnthropicOutput;
+  console.log(`extract[${model}]: ${images.length} page(s), ${Date.now() - startedAt}ms`);
+  if (output.stop_reason === 'max_tokens') {
+    throw new ExtractError(422, '書類が長すぎて読み取りきれませんでした。ページを分けてお試しください。');
+  }
+  if (output.stop_reason === 'refusal') throw new ExtractError(422, 'この画像は読み取れませんでした。戸籍の書類を撮影してください。');
+  const text = (output.content ?? []).filter((b) => b.type === 'text').map((b) => b.text ?? '').join('');
+  if (!text.trim()) throw new ExtractError(502, 'AIから結果が返ってきませんでした。もう一度お試しください。');
+  return parseResult(text);
+}
+
 /** One call: a vision model reads the images and answers with the JSON directly. */
 async function oneStep(images: ImageInput[], ai: Ai, model: string) {
+  if (model.startsWith('anthropic/')) return anthropicOneStep(images, ai, model);
   const startedAt = Date.now();
   const messages = [{ role: 'system' as const, content: READ_PROMPT }, imageMessage(images, 'この戸籍を読み取り、JSON で出力してください。')];
   const output = await runModel(async () =>
