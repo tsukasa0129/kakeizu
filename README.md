@@ -236,10 +236,12 @@ npm run deploy          # 本番 https://kakeizu-quest.app と https://kakeizu-f
 | `@cf/<モデル>` | Workers AI のビジョンモデル1回で、画像から直接 JSON にする |
 | `<作者>/<モデル>`（例: `google/gemini-3.8-flash`） | AI Gateway 経由の外部モデル1回で、画像から直接 JSON にする。Cloudflare の **Unified Billing（AI Gateway の前払いクレジット）** で払うので外部の API キーは不要。クレジットがないと `Insufficient AI Gateway credits` で失敗する |
 
-**今の設定は `workers-ai,@cf/qwen/qwen3.8-27b`**（2段階で読み、失敗したら Qwen 1回で読み直す）。
+**今の設定は `google/gemini-3.1-pro,anthropic/claude-opus-4.8,workers-ai`**。Gemini 3.1 Pro で読み、失敗したら Claude Opus 4.8、それも失敗したら Workers AI の2段階で読み直します。
+外部モデルは、戸籍が機微な個人情報なので、AI Gateway のカタログで **Zero data retention（提供元がデータを保存しない）** と書かれたものだけを使っています（Gemini 3.8 Flash などはこの表記がないので使わない）。
+料金は1ページあたり5〜10円ほど（Gemini 3.1 Pro：入力 $2・出力 $12 / 100万トークン）で、AI Gateway のクレジットから引かれます。残高は Cloudflare ダッシュボードの AI → AI Gateway の「Credits Available」で確認・追加できます（自動補充も設定可能）。**クレジットが切れると Claude も使えないので、Workers AI の2段階で読む**（遅くなるが止まらない）。
 どのモデルも、返ってきた JSON は `extractionSchema.ts` の Zod スキーマで検証します（スキーマはプロンプトで渡し、出力は JSON モード）。
 
-##### モデルの比較（2026-10-03、架空の戸籍で各1回）
+##### モデルの比較（2026-10-03、架空の戸籍。外部モデルは AI Gateway のクレジット購入後に追加）
 
 縦書き・明治の戸籍（大字の日付、×印の除籍者あり、4人）を読ませた結果です。正解は「4人の氏名・続柄・生年月日（西暦）・父母・夫婦のつながり、×印のハナが除籍、妻トメの従前戸籍（佐藤茂吉の戸籍）」。
 
@@ -251,9 +253,13 @@ npm run deploy          # 本番 https://kakeizu-quest.app と https://kakeizu-f
 | `@cf/meta/llama-4-scout-17b-16e-instruct` | 25秒 | 誤読が多く使えない |
 | `@cf/mistralai/mistral-small-3.1-24b-instruct` | 37秒 | 誤読が多く使えない |
 | `@cf/moonshotai/kimi-k2.6` | 216秒 | 決まった形の JSON を返せなかった |
-| `google/gemini-3.8-flash`・`google/gemini-3.1-pro`・`anthropic/claude-opus-4.8` | — | AI Gateway のクレジットがなく試せていない |
+| **`google/gemini-3.1-pro`**（採用） | 11〜17秒 | 3回とも全項目正解（1回だけ父の名前に「亡」が付いた → プロンプトで修正） |
+| `anthropic/claude-opus-4.8`（予備） | 20秒 | 全項目正解 |
+| `anthropic/claude-sonnet-4.6` | 26秒 | 従前戸籍を間違えた |
+| `google/gemini-3.8-flash` | 6〜7秒 | 3回とも人物は正解だが、1回は婚姻で出ていった先の戸籍を従前戸籍に入れた。Zero data retention の表記なし |
+| `google/gemini-3.1-flash-lite` | 6秒 | 日付・本籍の誤読あり |
 
-横書きの全部事項証明（2人）では、`workers-ai` が33〜42秒で全項目正解でした。
+横書きの全部事項証明（2人）では、Gemini 3.1 Pro が7〜8秒（3回とも全項目正解）、Gemini 3.8 Flash が5〜7秒（同）、Claude Opus 4.8 が11秒（妻の続柄を「二女」でなく「妻」とした）、`workers-ai` が33〜44秒（全項目正解）でした。
 `workers-ai` を速くするための調整（試した結果）:
 
 | 設定 | 今の値 | 試した結果（横書き1ページ） |

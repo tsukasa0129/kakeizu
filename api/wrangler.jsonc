@@ -24,6 +24,7 @@
     // AI 読み取りに使うモデル。"workers-ai"（Qwen で書き起こし → DeepSeek で構造化）、"@cf/…"（Workers AI のビジョンモデル1回）、
     // "google/…" など（AI Gateway 経由の外部モデル。Unified Billing のクレジットが必要）。カンマ区切りで、失敗したら次を使う。
     // 比較結果は README の「AI 読み取り」
-    "EXTRACT_MODEL": "workers-ai,@cf/qwen/qwen3.8-27b"
+    // 今は Gemini 3.1 Pro（ゼロデータ保持）→ 失敗したら Claude Opus 4.8（ゼロデータ保持）→ Workers AI の順
+    "EXTRACT_MODEL": "google/gemini-3.1-pro,anthropic/claude-opus-4.8,workers-ai"
   }
 }
